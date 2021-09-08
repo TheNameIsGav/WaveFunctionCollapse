@@ -5,7 +5,6 @@ using System.Linq;
 
 public class ManagerScript : MonoBehaviour
 {
-
     public int width;
     public int height;
     public GameObject tile;
@@ -14,18 +13,22 @@ public class ManagerScript : MonoBehaviour
 
     //Possibilites are worldMap ints that Might be a tile
     //Adjacencies are the objectID's that are allowed to be next to the current object
-    private Dictionary<int, Info> adjacencies; //Mapping of ID to Info Object (which contains the adjacency matrix)
+    private Dictionary<int, Tiles> adjacencies; //Mapping of ID to Info Object (which contains the adjacency matrix)
     private MapCoordinate[,] worldMap = new MapCoordinate[400,400]; //Contains an Arry of Map Coordinates (which have an x, a y, and a list of possible features to spawn) // Will eventually also contain a Z
-    private Dictionary<int, GameObject> objectMap;
+    private Dictionary<int, GameObject> objectMap; //update this to work with converting prefabs to gameobjects
 
     private int DIRECTION = 4; //4 for now while I work in 2 dimensions
 
-    public class Info
+    public class Tiles
     {
         public Dictionary<int, List<int>> directionMapping;
         public int internalID;
 
-        public Info(int inc) { internalID = inc; }
+        //Keep track of occurances and the prefabtype of the object
+        public int occurances;
+        public int prefabType;
+
+        public Tiles(int inc) { internalID = inc; }
 
         public void addAdjacencies(int direction, int inc) { directionMapping[direction].Add(inc); }
 
@@ -66,7 +69,7 @@ public class ManagerScript : MonoBehaviour
         //Setup the default adjacencies
         int newObjID = 0;
         objectMap[newObjID] = tile; //Brute force add the object to the tile mapping
-        Info tmp = new Info(newObjID);
+        Tiles tmp = new Tiles(newObjID);
         for(int i = 0; i < DIRECTION; i++)
         {
             tmp.addAdjacencies(i, 0); //Sets the adjacencies to all be zero for now, should eventually go and find the adjacencies
