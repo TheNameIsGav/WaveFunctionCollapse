@@ -15,24 +15,33 @@ public class ManagerScript : MonoBehaviour
     //Adjacencies are the objectID's that are allowed to be next to the current object
     private Dictionary<int, Tiles> adjacencies; //Mapping of ID to Info Object (which contains the adjacency matrix)
     private MapCoordinate[,] worldMap = new MapCoordinate[400,400]; //Contains an Arry of Map Coordinates (which have an x, a y, and a list of possible features to spawn) // Will eventually also contain a Z
-    private Dictionary<int, GameObject> objectMap; //update this to work with converting prefabs to gameobjects
+    private Dictionary<int, GameObject> objectMap = new Dictionary<int, GameObject>(); //update this to work with converting prefabs to gameobjects
 
     private int DIRECTION = 4; //4 for now while I work in 2 dimensions
 
     public class Tiles
     {
         public Dictionary<int, List<int>> directionMapping;
-        public int internalID;
 
         //Keep track of occurances and the prefabtype of the object
         public int occurances;
-        public int prefabType;
+        public int prefabType; //Prefab type is the keyword of the prefab
 
-        public Tiles(int inc) { internalID = inc; }
+        public Tiles(int inc) { prefabType = inc; }
 
-        public void addAdjacencies(int direction, int inc) { directionMapping[direction].Add(inc); }
+        public void addAdjacencies(int direction, int inc) { directionMapping[direction].Add(inc); } //This will be built initially
+
+        public void convertToSet()
+        {
+            for(int i = 0; i < directionMapping.Keys.Count; i++)
+            {
+                directionMapping[i] = directionMapping[i].Distinct().ToList();
+            }
+        }
 
         public List<int> getAdjacenciesByDirection(int direction) { return directionMapping[direction]; }
+
+        public bool equals(Tiles other) { if (prefabType == other.prefabType) { return true; } else { return false; } }
 
     }
 
@@ -65,15 +74,17 @@ public class ManagerScript : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-
         //Setup the default adjacencies
         int newObjID = 0;
-        objectMap[newObjID] = tile; //Brute force add the object to the tile mapping
+        Debug.Log(tile);
+        objectMap[0] = tile; //Brute force add the object to the tile mapping
         Tiles tmp = new Tiles(newObjID);
         for(int i = 0; i < DIRECTION; i++)
         {
             tmp.addAdjacencies(i, 0); //Sets the adjacencies to all be zero for now, should eventually go and find the adjacencies
         }
+
+        tmp.convertToSet();
 
         adjacencies[newObjID] = tmp; //Adds the tmp object to the adjacencies
         doOnce = true;
@@ -113,6 +124,7 @@ public class ManagerScript : MonoBehaviour
         {
             Debug.Log("Running through WFC @ iteration " + itr.ToString());
             itr++;
+            running = false;
 
             foreach(MapCoordinate curr in worldMap)
             {
@@ -123,23 +135,75 @@ public class ManagerScript : MonoBehaviour
                     {
                         MapCoordinate tmp = worldMap[(int)curr.getCoords().x, (int)curr.getCoords().y - 1];
 
+                        if (inBounds(tmp.getCoords())) {
+                            updateSuperposition(tmp);
+                        }
+
                     }
                     if (inBounds(curr.getCoords() + Vector2.up))
                     {
+                        MapCoordinate tmp = worldMap[(int)curr.getCoords().x, (int)curr.getCoords().y + 1];
 
+                        if (inBounds(tmp.getCoords()))
+                        {
+                            updateSuperposition(tmp);
+                        }
                     }
                     if (inBounds(curr.getCoords() + Vector2.left))
                     {
+                        MapCoordinate tmp = worldMap[(int)curr.getCoords().x - 1, (int)curr.getCoords().y];
 
+                        if (inBounds(tmp.getCoords()))
+                        {
+                            updateSuperposition(tmp);
+                        }
                     }
                     if (inBounds(curr.getCoords() + Vector2.right))
                     {
+                        MapCoordinate tmp = worldMap[(int)curr.getCoords().x + 1, (int)curr.getCoords().y];
 
+                        if (inBounds(tmp.getCoords()))
+                        {
+                            updateSuperposition(tmp);
+                        }
                     }
 
+                } else { //If any node isn't fixed, we're not done running yet
+                    running = true;
+                }
+
+                if (curr.getPossibilities().Count == 1)
+                {
+                    curr.Fix();
                 }
             }
 
+        }
+
+        foreach (MapCoordinate curr in worldMap)
+        {
+            Object.Instantiate(objectMap[curr.getPossibilities()[0]], new Vector3(curr.getCoords().x, 0, curr.getCoords().y), Quaternion.identity);
+        }
+    }
+
+    void updateSuperposition(MapCoordinate inc) //Takes a map coordinate and compiles the intersection of all fixed nodes around it
+    {
+        List<int> myPossible = objectMap.Keys.ToList(); //Get's every possible tile
+        if (inBounds(inc.getCoords() + Vector2.down))
+        {
+            myPossible.Intersect(worldMap[(int)inc.getCoords().x, (int)inc.getCoords().y - 1].getPossibilities());
+        }
+        if (inBounds(inc.getCoords() + Vector2.up))
+        {
+            myPossible.Intersect(worldMap[(int)inc.getCoords().x, (int)inc.getCoords().y + 1].getPossibilities());
+        }
+        if (inBounds(inc.getCoords() + Vector2.left))
+        {
+            myPossible.Intersect(worldMap[(int)inc.getCoords().x - 1, (int)inc.getCoords().y].getPossibilities());
+        }
+        if (inBounds(inc.getCoords() + Vector2.right))
+        {
+            myPossible.Intersect(worldMap[(int)inc.getCoords().x + 1, (int)inc.getCoords().y - 1].getPossibilities());
         }
     }
 
