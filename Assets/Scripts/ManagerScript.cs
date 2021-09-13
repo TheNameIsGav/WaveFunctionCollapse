@@ -13,21 +13,27 @@ public class ManagerScript : MonoBehaviour
 
     //Possibilites are worldMap ints that Might be a tile
     //Adjacencies are the objectID's that are allowed to be next to the current object
-    private Dictionary<int, Tiles> adjacencies; //Mapping of ID to Info Object (which contains the adjacency matrix)
-    private MapCoordinate[,] worldMap = new MapCoordinate[400,400]; //Contains an Arry of Map Coordinates (which have an x, a y, and a list of possible features to spawn) // Will eventually also contain a Z
+    private Dictionary<int, Tiles> adjacencies = new Dictionary<int, Tiles>(); //Mapping of ID to Info Object (which contains the adjacency matrix)
+    private MapCoordinate[,] worldMap; //Contains an Arry of Map Coordinates (which have an x, a y, and a list of possible features to spawn) // Will eventually also contain a Z
     private Dictionary<int, GameObject> objectMap = new Dictionary<int, GameObject>(); //update this to work with converting prefabs to gameobjects
 
     private int DIRECTION = 4; //4 for now while I work in 2 dimensions
 
     public class Tiles
     {
-        public Dictionary<int, List<int>> directionMapping;
+        public Dictionary<int, List<int>> directionMapping = new Dictionary<int, List<int>>();
 
         //Keep track of occurances and the prefabtype of the object
         public int occurances;
         public int prefabType; //Prefab type is the keyword of the prefab
 
-        public Tiles(int inc) { prefabType = inc; }
+        public Tiles(int inc) { 
+            prefabType = inc;
+            directionMapping.Add(0, new List<int>()); //Dirty way of adding the directions to the dictionary
+            directionMapping.Add(1, new List<int>());
+            directionMapping.Add(2, new List<int>());
+            directionMapping.Add(3, new List<int>());
+        }
 
         public void addAdjacencies(int direction, int inc) { directionMapping[direction].Add(inc); } //This will be built initially
 
@@ -47,15 +53,16 @@ public class ManagerScript : MonoBehaviour
 
     public class MapCoordinate
     {
-        private Vector2 coords;
+        private Vector2Int coords;
         private List<int> possibilites;
         private bool hasFixed = false;
 
-        public MapCoordinate(int incX, int incY) { coords = new Vector2(incX, incY); }
+        public MapCoordinate() { coords = new Vector2Int(0, 0); }
+        public MapCoordinate(int incX, int incY) { coords = new Vector2Int(incX, incY); }
 
         public MapCoordinate(int incX, int incY, List<int> possible)
         {
-            coords = new Vector2(incX, incY);
+            coords = new Vector2Int(incX, incY);
             possibilites = possible;
         }
 
@@ -63,7 +70,7 @@ public class ManagerScript : MonoBehaviour
 
         public List<int> getPossibilities() { return possibilites; }
 
-        public Vector2 getCoords() { return coords; }
+        public Vector2Int getCoords() { return coords; }
 
         public void Fix() { hasFixed = true; }
 
@@ -75,9 +82,10 @@ public class ManagerScript : MonoBehaviour
     void Start()
     {
         //Setup the default adjacencies
+        worldMap = new MapCoordinate[width, height];
+        Debug.Log(worldMap);
         int newObjID = 0;
-        Debug.Log(tile);
-        objectMap[0] = tile; //Brute force add the object to the tile mapping
+        objectMap[0] = Instantiate(tile, new Vector3(), Quaternion.identity); //Brute force add the object to the tile mapping
         Tiles tmp = new Tiles(newObjID);
         for(int i = 0; i < DIRECTION; i++)
         {
@@ -104,7 +112,7 @@ public class ManagerScript : MonoBehaviour
         bool running = true;
 
         //Pick and set the start node to be one of the random possibilites that exists at that node
-        Vector2 randStart = new Vector2(Random.Range(0, width), Random.Range(0, height));
+        Vector2Int randStart = new Vector2Int(Random.Range(0, width), Random.Range(0, height));
         foreach (MapCoordinate curr in worldMap)
         {
             if (curr.getCoords() == randStart)
@@ -131,41 +139,29 @@ public class ManagerScript : MonoBehaviour
                 if (curr.isFixed()) //If we have fixed this node, percolate those changes to surrounding nodes
                 {
                     //Test and update all directions
-                    if (inBounds(curr.getCoords() + Vector2.down))
-                    {
-                        MapCoordinate tmp = worldMap[(int)curr.getCoords().x, (int)curr.getCoords().y - 1];
-
-                        if (inBounds(tmp.getCoords())) {
-                            updateSuperposition(tmp);
-                        }
-
+                    //Transforms the current position with the correct direction and then asks if that is in bounds
+                    Vector2Int transformed = curr.getCoords() + Vector2Int.down;
+                    if (inBounds(transformed))
+                    { 
+                        updateSuperposition(transformed); //if it is, update that superposition
                     }
-                    if (inBounds(curr.getCoords() + Vector2.up))
-                    {
-                        MapCoordinate tmp = worldMap[(int)curr.getCoords().x, (int)curr.getCoords().y + 1];
 
-                        if (inBounds(tmp.getCoords()))
-                        {
-                            updateSuperposition(tmp);
-                        }
+                    transformed = curr.getCoords() + Vector2Int.up;
+                    if (inBounds(transformed))
+                    {
+                        updateSuperposition(transformed);
                     }
-                    if (inBounds(curr.getCoords() + Vector2.left))
-                    {
-                        MapCoordinate tmp = worldMap[(int)curr.getCoords().x - 1, (int)curr.getCoords().y];
 
-                        if (inBounds(tmp.getCoords()))
-                        {
-                            updateSuperposition(tmp);
-                        }
+                    transformed = curr.getCoords() + Vector2Int.left;
+                    if (inBounds(transformed))
+                    {
+                        updateSuperposition(transformed);
                     }
-                    if (inBounds(curr.getCoords() + Vector2.right))
-                    {
-                        MapCoordinate tmp = worldMap[(int)curr.getCoords().x + 1, (int)curr.getCoords().y];
 
-                        if (inBounds(tmp.getCoords()))
-                        {
-                            updateSuperposition(tmp);
-                        }
+                    transformed = curr.getCoords() + Vector2Int.right;
+                    if (inBounds(transformed))
+                    {
+                        updateSuperposition(transformed);
                     }
 
                 } else { //If any node isn't fixed, we're not done running yet
@@ -186,34 +182,54 @@ public class ManagerScript : MonoBehaviour
         }
     }
 
-    void updateSuperposition(MapCoordinate inc) //Takes a map coordinate and compiles the intersection of all fixed nodes around it
+    void updateSuperposition(Vector2Int inc) //Takes a map coordinate and compiles the intersection of all fixed nodes around it
     {
         List<int> myPossible = objectMap.Keys.ToList(); //Get's every possible tile
-        if (inBounds(inc.getCoords() + Vector2.down))
+
+        Vector2Int transformed = inc + Vector2Int.down;
+        if (inBounds(transformed))
         {
-            myPossible.Intersect(worldMap[(int)inc.getCoords().x, (int)inc.getCoords().y - 1].getPossibilities());
+            if (worldMap[transformed.x, transformed.y].isFixed()) { 
+                myPossible.Intersect(worldMap[transformed.x, transformed.y].getPossibilities()); 
+            }
         }
-        if (inBounds(inc.getCoords() + Vector2.up))
+
+        transformed = inc + Vector2Int.up;
+        if (inBounds(transformed))
         {
-            myPossible.Intersect(worldMap[(int)inc.getCoords().x, (int)inc.getCoords().y + 1].getPossibilities());
+            if (worldMap[transformed.x, transformed.y].isFixed())
+            {
+                myPossible.Intersect(worldMap[transformed.x, transformed.y].getPossibilities());
+            }
         }
-        if (inBounds(inc.getCoords() + Vector2.left))
+
+        transformed = inc + Vector2Int.left;
+        if (inBounds(transformed))
         {
-            myPossible.Intersect(worldMap[(int)inc.getCoords().x - 1, (int)inc.getCoords().y].getPossibilities());
+            if (worldMap[transformed.x, transformed.y].isFixed())
+            {
+                myPossible.Intersect(worldMap[transformed.x, transformed.y].getPossibilities());
+            }
         }
-        if (inBounds(inc.getCoords() + Vector2.right))
+
+        transformed = inc + Vector2Int.right;
+        if (inBounds(transformed))
         {
-            myPossible.Intersect(worldMap[(int)inc.getCoords().x + 1, (int)inc.getCoords().y - 1].getPossibilities());
+            if (worldMap[transformed.x, transformed.y].isFixed())
+            {
+                myPossible.Intersect(worldMap[transformed.x, transformed.y].getPossibilities());
+            }
         }
     }
 
-    bool inBounds(Vector2 incVec)
+
+    bool inBounds(Vector2Int incVec)
     {
-        if(incVec.x > width || incVec.x < 0)
+        if(incVec.x >= width || incVec.x < 0)
         {
             return false;
         }
-        if(incVec.y > height || incVec.y < 0)
+        if(incVec.y >= height || incVec.y < 0)
         {
             return false;
         }
