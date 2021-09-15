@@ -9,6 +9,8 @@ public class ManagerScript : MonoBehaviour
     public int height;
     public int length;
     public LayerMask world;
+    public GameObject tile;
+    public GameObject[] worldBlocks;
 
     private bool doOnce = true;
 
@@ -93,11 +95,17 @@ public class ManagerScript : MonoBehaviour
 
         public void setTile(int tile) { thisTile = tile; }
 
+        override public string ToString()
+        {
+            return "";
+        }
+
     }
 
     // Start is called before the first frame update
     void Start()
     {
+        //New code for generating adjacency matrix
         box = GetComponent<BoxCollider>();
         //Setup the default adjacencies
         worldMap = new MapCoordinate[width, height, length];
@@ -110,6 +118,25 @@ public class ManagerScript : MonoBehaviour
         }
 
         buildAdjacencyMatrix();
+        //End new code
+
+        //Old Code for generating dummy tiles
+        /*worldMap = new MapCoordinate[width, height, length];
+        Debug.Log(worldMap);
+        int newObjID = 0;
+        objectMap[0] = Instantiate(tile, new Vector3(), Quaternion.identity); //Brute force add the object to the tile mapping
+        Tiles tmp = new Tiles(newObjID);
+        for (int i = 0; i < 6; i++)
+        {
+            tmp.addAdjacencies(i, 0); //Sets the adjacencies to all be zero for now, should eventually go and find the adjacencies
+        }
+
+        tmp.convertToSet();
+
+        adjacencies[newObjID] = tmp; //Adds the tmp object to the adjacencies
+        doOnce = true;*/
+        //End old code
+
 
         //Setup the world map
         for (int x = 0; x < width; x++)
@@ -126,6 +153,21 @@ public class ManagerScript : MonoBehaviour
 
     void StartWFC()
     {
+        Vector3Int randStart = new Vector3Int(Random.Range(0, width), Random.Range(0, height), Random.Range(0, length));
+        foreach (MapCoordinate curr in worldMap)
+        {
+            if (curr.getCoords() == randStart)
+            {
+                curr.Fix(); //Fix it in place
+                List<int> thesePossibilies = curr.getPossibilities();
+
+                List<int> selected = new List<int>();
+                selected.Add(thesePossibilies[Random.Range(0, thesePossibilies.Count())]);
+
+                curr.updatePossibilites(selected);
+            }
+        }
+
         bool running = true;
 
         int itr = 0;
@@ -134,9 +176,16 @@ public class ManagerScript : MonoBehaviour
             Debug.Log("Running through WFC @ iteration " + itr.ToString());
             itr++;
             running = false;
+            if(itr > 1000)
+            {
+                break;
+            }
 
             foreach(MapCoordinate curr in worldMap)
-            {
+            {//Adjust this to pick from lowest entropy
+                //Take this out of the while loop so I can control things
+                //Add counter to see if something has 0 elements possible and do something
+                // Add wrapping
                 if (curr.isFixed()) //If we have fixed this node, percolate those changes to surrounding nodes
                 {
                     //Test and update all directions

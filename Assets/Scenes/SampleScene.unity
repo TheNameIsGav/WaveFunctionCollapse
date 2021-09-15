@@ -610,6 +610,11 @@ MonoBehaviour:
   world:
     serializedVersion: 2
     m_Bits: 8
+  tile: {fileID: 1330119535}
+  worldBlocks:
+  - {fileID: 5933211675606372562, guid: f0de98ebd5ad1054b850cd14a8025daa, type: 3}
+  - {fileID: 6616605360511861821, guid: c9fb677d761b11d4992b72981ee56e14, type: 3}
+  - {fileID: 688559907807666996, guid: 0ac097e01f4f76542bbc8c4fb90d2f31, type: 3}
 --- !u!65 &763401542
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -939,6 +944,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: c9fb677d761b11d4992b72981ee56e14, type: 3}
+--- !u!1 &1330119535 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6616605360511861821, guid: c9fb677d761b11d4992b72981ee56e14, type: 3}
+  m_PrefabInstance: {fileID: 1330119534}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1521122761
 PrefabInstance:
   m_ObjectHideFlags: 0
