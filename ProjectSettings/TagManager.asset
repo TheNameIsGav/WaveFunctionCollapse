@@ -5,12 +5,14 @@ TagManager:
   serializedVersion: 2
   tags:
   - AirTag
-  - GroundTag
+  - Grass
+  - Stone
+  - Manager
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - World
   - Water
   - UI
   - 
