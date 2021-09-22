@@ -5,14 +5,12 @@ using System.Linq;
 
 public class ManagerScript : MonoBehaviour
 {
-    public int width;
-    public int height;
-    public int length;
+    public int width; //x
+    public int height; //y
+    public int length; //z
     public LayerMask world;
     public GameObject tile;
     public GameObject[] worldBlocks;
-
-    private bool doOnce = true;
 
     //Possibilites are worldMap ints that Might be a tile
     //Adjacencies are the objectID's that are allowed to be next to the current object
@@ -23,16 +21,6 @@ public class ManagerScript : MonoBehaviour
     
     private BoxCollider box;
 
-    enum DIRECTION //reference enum
-    {
-        UP = 0,
-        DOWN = 1,
-        LEFT = 2,
-        RIGHT = 3,
-        FORWARD = 4,
-        BACK = 5
-    }
-
     public class Tiles
     {
         public Dictionary<int, List<int>> directionMapping = new Dictionary<int, List<int>>();
@@ -40,6 +28,7 @@ public class ManagerScript : MonoBehaviour
         //Keep track of occurances and the prefabtype of the object
         public int occurances = 0;
         public int prefabType; //Prefab type is the keyword of the prefab
+        public string name;
 
         public Tiles(int inc) { 
             prefabType = inc;
@@ -65,6 +54,25 @@ public class ManagerScript : MonoBehaviour
 
         public bool equals(Tiles other) { if (prefabType == other.prefabType) { return true; } else { return false; } }
 
+        public override string ToString()
+        {
+            string ret = "";
+            ret += " Printing Tile Adjacencies for tile type: " + name + "\n";
+
+            for(int i = 0; i < directionMapping.Keys.Count; i++)
+            {
+                string tmp = "[";
+                foreach(var x in directionMapping[i])
+                {
+                    tmp += x.ToString() + ", ";
+                }
+                tmp += "]";
+                ret += "For direction " + i + " the adjacencies are " + tmp + "\n";
+            }
+
+            return ret;
+        }
+
     }
 
     public class MapCoordinate
@@ -72,7 +80,7 @@ public class ManagerScript : MonoBehaviour
         private Vector3Int coords;
         private List<int> possibilites;
         private bool hasFixed = false;
-        private int thisTile;
+        public int thisTile;
 
         public MapCoordinate() { coords = new Vector3Int(0, 0, 0); }
         public MapCoordinate(int incX, int incY, int incZ) { coords = new Vector3Int(incX, incY, incZ); }
@@ -97,20 +105,32 @@ public class ManagerScript : MonoBehaviour
 
         override public string ToString()
         {
-            return "";
+            string tmp = "[";
+            foreach (var x in possibilites)
+            {
+                tmp += x.ToString() + ", ";
+            }
+            tmp += "]";
+            return "For block Map BLock @: " + coords.ToString() + " the possibilites at this point are " + tmp;
         }
 
     }
 
-    // Start is called before the first frame update
-    void Start()
+
+
+
+
+
+
+
+    private void Awake()
     {
         //New code for generating adjacency matrix
         box = GetComponent<BoxCollider>();
         //Setup the default adjacencies
         worldMap = new MapCoordinate[width, height, length];
 
-        for(int i = 0; i < transform.childCount; i++) //"Building Blocks" are children of the manager
+        for (int i = 0; i < transform.childCount; i++) //"Building Blocks" are children of the manager
         {
             objectMap.Add(i, transform.GetChild(i).gameObject); //Add all possible tiles to the objectMap with their ID
             tagMap.Add(transform.GetChild(i).tag, i); //Map the correct tag to the object ID for use later.
@@ -118,30 +138,12 @@ public class ManagerScript : MonoBehaviour
         }
 
         buildAdjacencyMatrix();
-        //End new code
-
-        //Old Code for generating dummy tiles
-        /*worldMap = new MapCoordinate[width, height, length];
-        Debug.Log(worldMap);
-        int newObjID = 0;
-        objectMap[0] = Instantiate(tile, new Vector3(), Quaternion.identity); //Brute force add the object to the tile mapping
-        Tiles tmp = new Tiles(newObjID);
-        for (int i = 0; i < 6; i++)
-        {
-            tmp.addAdjacencies(i, 0); //Sets the adjacencies to all be zero for now, should eventually go and find the adjacencies
-        }
-
-        tmp.convertToSet();
-
-        adjacencies[newObjID] = tmp; //Adds the tmp object to the adjacencies
-        doOnce = true;*/
-        //End old code
-
+        printAdjacencyMatrix();
 
         //Setup the world map
         for (int x = 0; x < width; x++)
         {
-            for(int y = 0; y < height; y++)
+            for (int y = 0; y < height; y++)
             {
                 for (int z = 0; z < length; z++)
                 {
@@ -151,173 +153,133 @@ public class ManagerScript : MonoBehaviour
         }
     }
 
-    void StartWFC()
+    // Start is called before the first frame update
+    void Start()
     {
-        Vector3Int randStart = new Vector3Int(Random.Range(0, width), Random.Range(0, height), Random.Range(0, length));
-        foreach (MapCoordinate curr in worldMap)
+        WFC();
+    }
+
+    private void printAdjacencyMatrix()
+    {
+        for(int i = 0; i < adjacencies.Keys.Count; i++)
         {
-            if (curr.getCoords() == randStart)
-            {
-                curr.Fix(); //Fix it in place
-                List<int> thesePossibilies = curr.getPossibilities();
+            Debug.Log(adjacencies[i].ToString());
+        }
+    }
 
-                List<int> selected = new List<int>();
-                selected.Add(thesePossibilies[Random.Range(0, thesePossibilies.Count())]);
+    void WFC() //Selects a random start coordinate and picks one of the valid building blocks, as every map coordinate to begin with has every tile
+    {
+        MapCoordinate curr = worldMap[(Random.Range(0, width)), Random.Range(0, height), Random.Range(0, length)];
+         
+        List<int> thesePossibilies = curr.getPossibilities();
 
-                curr.updatePossibilites(selected);
-            }
+        List<int> selected = new List<int>();
+        selected.Add(thesePossibilies[Random.Range(0, thesePossibilies.Count())]);
+
+        curr.updatePossibilites(selected);
+
+        curr.Fix();//Fix it in place
+
+    }
+
+    void RunWFC()
+    {
+
+        MapCoordinate curr = worldMap[(Random.Range(0, width)), Random.Range(0, height), Random.Range(0, length)]; //select random map coordinate
+        while (curr.isFixed())
+        {
+            curr = worldMap[(Random.Range(0, width)), Random.Range(0, height), Random.Range(0, length)]; //select until we get a non-fixed node (i.e. a superposition)
         }
 
-        bool running = true;
-
-        int itr = 0;
-        while (running)
+        foreach (MapCoordinate mc in worldMap) //Find map coordinate with the least possibilites
         {
-            Debug.Log("Running through WFC @ iteration " + itr.ToString());
-            itr++;
-            running = false;
-            if(itr > 1000)
+            if (!mc.isFixed()) //if current map coordinate isn't fixed
             {
-                break;
-            }
-
-            foreach(MapCoordinate curr in worldMap)
-            {//Adjust this to pick from lowest entropy
-                //Take this out of the while loop so I can control things
-                //Add counter to see if something has 0 elements possible and do something
-                // Add wrapping
-                if (curr.isFixed()) //If we have fixed this node, percolate those changes to surrounding nodes
+                if (mc.getPossibilities().Count < curr.getPossibilities().Count) //if it has less possibilites than the random one we selected
                 {
-                    //Test and update all directions
-                    //Transforms the current position with the correct direction and then asks if that is in bounds
-                    Vector3Int transformed = curr.getCoords() + Vector3Int.down;
-                    if (inBounds(transformed))
-                    { 
-                        updateSuperposition(transformed); //if it is, update that superposition
-                    }
-
-                    transformed = curr.getCoords() + Vector3Int.up;
-                    if (inBounds(transformed))
-                    {
-                        updateSuperposition(transformed);
-                    }
-
-                    transformed = curr.getCoords() + Vector3Int.left;
-                    if (inBounds(transformed))
-                    {
-                        updateSuperposition(transformed);
-                    }
-
-                    transformed = curr.getCoords() + Vector3Int.right;
-                    if (inBounds(transformed))
-                    {
-                        updateSuperposition(transformed);
-                    }
-
-                    transformed = curr.getCoords() + Vector3Int.forward;
-                    if (inBounds(transformed))
-                    {
-                        updateSuperposition(transformed);
-                    }
-
-                    transformed = curr.getCoords() + Vector3Int.back;
-                    if (inBounds(transformed))
-                    {
-                        updateSuperposition(transformed);
-                    }
-
-                } else { //If any node isn't fixed, we're not done running yet
-                    running = true;
-                }
-
-                if (curr.getPossibilities().Count == 1)
-                {
-                    curr.Fix();
+                    curr = mc; //asign it 
                 }
             }
-
         }
 
-        foreach (MapCoordinate curr in worldMap)
+        // Add wrapping
+        //If I go right, I snap to 0, if I go left I snap to width
+        //If I go forward I snap to 0, if I go back I snap to length
+        //Should I do vertical wrapping?
+        //If we get here, then look at all our adjacencies and see if they are fixed, if they are, then we update ourselves
+        Vector3Int trans = inBounds(curr.getCoords() + Vector3Int.up);
+        updateFromAdjacent(trans, curr, 0);
+        
+        trans = inBounds(curr.getCoords() + Vector3Int.down);
+        updateFromAdjacent(trans, curr, 1);
+
+        trans = inBounds(curr.getCoords() + Vector3Int.left);
+        updateFromAdjacent(trans, curr, 2);
+
+        trans = inBounds(curr.getCoords() + Vector3Int.right);
+        updateFromAdjacent(trans, curr, 3);
+
+        trans = inBounds(curr.getCoords() + Vector3Int.forward);
+        updateFromAdjacent(trans, curr, 4);
+
+        trans = inBounds(curr.getCoords() + Vector3Int.back);
+        updateFromAdjacent(trans, curr, 5);
+
+
+        if (curr.getPossibilities().Count == 0) //If anything has 0 possibilites, then we fail
         {
-            Object.Instantiate(objectMap[curr.getPossibilities()[0]], new Vector3(curr.getCoords().x, curr.getCoords().y, curr.getCoords().z), Quaternion.identity);
+            Debug.Log("Impossible Pattern");
+            return;
+        }
+
+        if (curr.getPossibilities().Count == 1) //If we are at one possibility, then we fix (Is this correct???????????)
+        {
+            curr.Fix();
         }
     }
 
-    void updateSuperposition(Vector3Int inc) //Takes a map coordinate and compiles the intersection of all fixed nodes around it
+    void updateFromAdjacent(Vector3Int trans, MapCoordinate curr, int dir) //Updates mapcoordinates possibilites with intersection of adjacent fixed nodes
     {
-        List<int> myPossible = objectMap.Keys.ToList(); //Get's every possible tile
-
-        Vector3Int transformed = inc + Vector3Int.down;
-        if (inBounds(transformed))
+        if (worldMap[trans.x, trans.y, trans.z].isFixed())
         {
-            if (worldMap[transformed.x, transformed.y, transformed.z].isFixed()) { 
-                myPossible.Intersect(worldMap[transformed.x, transformed.y, transformed.z].getPossibilities()); 
-            }
-        }
-
-        transformed = inc + Vector3Int.up;
-        if (inBounds(transformed))
-        {
-            if (worldMap[transformed.x, transformed.y, transformed.z].isFixed())
-            {
-                myPossible.Intersect(worldMap[transformed.x, transformed.y, transformed.z].getPossibilities());
-            }
-        }
-
-        transformed = inc + Vector3Int.left;
-        if (inBounds(transformed))
-        {
-            if (worldMap[transformed.x, transformed.y, transformed.z].isFixed())
-            {
-                myPossible.Intersect(worldMap[transformed.x, transformed.y, transformed.z].getPossibilities());
-            }
-        }
-
-        transformed = inc + Vector3Int.right;
-        if (inBounds(transformed))
-        {
-            if (worldMap[transformed.x, transformed.y, transformed.z].isFixed())
-            {
-                myPossible.Intersect(worldMap[transformed.x, transformed.y, transformed.z].getPossibilities());
-            }
-        }
-
-        transformed = inc + Vector3Int.forward;
-        if (inBounds(transformed))
-        {
-            if (worldMap[transformed.x, transformed.y, transformed.z].isFixed())
-            {
-                myPossible.Intersect(worldMap[transformed.x, transformed.y, transformed.z].getPossibilities());
-            }
-        }
-
-        transformed = inc + Vector3Int.back;
-        if (inBounds(transformed))
-        {
-            if (worldMap[transformed.x, transformed.y, transformed.z].isFixed())
-            {
-                myPossible.Intersect(worldMap[transformed.x, transformed.y, transformed.z].getPossibilities());
-            }
+            List<int> fixedTileAdjacencies = adjacencies[worldMap[trans.x, trans.y, trans.z].thisTile].getAdjacenciesByDirection(0); //Gets adjacency for that tile type in that direction
+            List<int> tmp = curr.getPossibilities();
+            tmp.Intersect(fixedTileAdjacencies);
+            curr.updatePossibilites(tmp);
         }
     }
 
-    bool inBounds(Vector3Int incVec)
+    Vector3Int inBounds(Vector3Int incVec) //Proper usage of this function: call on a transformed vector and will return the correct map coordinate to modify
     {
-        if(incVec.x >= width || incVec.x < 0)
+        if(incVec.x >= width)
         {
-            return false;
+            return new Vector3Int(0, incVec.y, incVec.z);
         }
-        if(incVec.y >= height || incVec.y < 0)
+        if(incVec.x < 0)
         {
-            return false;
+            return new Vector3Int(width, incVec.y, incVec.z);
         }
-        if(incVec.z >= length || incVec.z < 0)
+
+        if (incVec.y >= height)
         {
-            return false;
+            return new Vector3Int(incVec.x, 0, incVec.z);
         }
-        return true;
-    }
+        if(incVec.y < 0)
+        {
+            return new Vector3Int(incVec.x, height , incVec.z);
+        }
+
+        if (incVec.z >= length)
+        {
+            return new Vector3Int(incVec.x, incVec.y, 0);
+        }
+        if(incVec.z < 0)
+        {
+            return new Vector3Int(incVec.x, incVec.y, length);
+        }
+
+        return incVec;
+    } //if this returns false then we wrap, maybe change to int to indicate which direction it returned false in;
 
     void buildAdjacencyMatrix()
     {
@@ -331,101 +293,110 @@ public class ManagerScript : MonoBehaviour
             {
                 break;
             }
-            int thisId = tagMap[obj.tag];
-            adjacencies[thisId].occurances++; //We have seen an instances of the object
+            int thisID = tagMap[obj.tag];
+            adjacencies[thisID].occurances++; //We have seen an instances of the object
+            adjacencies[thisID].name = objectMap[thisID].name;
             Vector3 testPos;
-            Collider[] hit;
-
-            //Now go find the correct adjacenceies
 
             //Up
             testPos = obj.transform.position + Vector3.up; //Would need to be multiplied by the block size
-            hit = Physics.OverlapSphere(testPos, .1f, world);
-            if(hit.Length > 0)
-            {
-                adjacencies[thisId].addAdjacencies(0, tagMap[hit[0].gameObject.tag]); //Adds the objectID of the hit block
-            } else
-            {
-                adjacencies[thisId].addAdjacencies(0, -1); //Adds an air block
-            }
+            generateOverlapSpheres(testPos, 0, thisID);
 
             //Down
             testPos = obj.transform.position + Vector3.down; //Would need to be multiplied by the block size
-            hit = Physics.OverlapSphere(testPos, .1f, world);
-            if (hit.Length > 0)
-            {
-                adjacencies[thisId].addAdjacencies(1, tagMap[hit[0].gameObject.tag]); //Adds the objectID of the hit block
-            }
-            else
-            {
-                adjacencies[thisId].addAdjacencies(1, -1); //Adds an air block
-            }
+            generateOverlapSpheres(testPos, 1, thisID);
 
             //Left
             testPos = obj.transform.position + Vector3.left; //Would need to be multiplied by the block size
-            hit = Physics.OverlapSphere(testPos, .1f, world);
-            if (hit.Length > 0)
-            {
-                Debug.Log(adjacencies[thisId]);
-                Debug.Log(hit[0].gameObject.tag);
-                adjacencies[thisId].addAdjacencies(2, tagMap[hit[0].gameObject.tag]); //Adds the objectID of the hit block
-            }
-            else
-            {
-                adjacencies[thisId].addAdjacencies(2, -1); //Adds an air block
-            }
+            generateOverlapSpheres(testPos, 2, thisID);
 
             //Right
             testPos = obj.transform.position + Vector3.right; //Would need to be multiplied by the block size
-            hit = Physics.OverlapSphere(testPos, .1f, world);
-            if (hit.Length > 0)
-            {
-                adjacencies[thisId].addAdjacencies(3, tagMap[hit[0].gameObject.tag]); //Adds the objectID of the hit block
-            }
-            else
-            {
-                adjacencies[thisId].addAdjacencies(3, -1); //Adds an air block
-            }
+            generateOverlapSpheres(testPos, 3, thisID);
 
             //Forward
             testPos = obj.transform.position + Vector3.forward; //Would need to be multiplied by the block size
-            hit = Physics.OverlapSphere(testPos, .1f, world);
-            if (hit.Length > 0)
-            {
-                adjacencies[thisId].addAdjacencies(4, tagMap[hit[0].gameObject.tag]); //Adds the objectID of the hit block
-            }
-            else
-            {
-                adjacencies[thisId].addAdjacencies(4, -1); //Adds an air block
-            }
+            generateOverlapSpheres(testPos, 4, thisID);
 
             //Back
             testPos = obj.transform.position + Vector3.back; //Would need to be multiplied by the block size
-            hit = Physics.OverlapSphere(testPos, .1f, world);
-            if (hit.Length > 0)
-            {
-                adjacencies[thisId].addAdjacencies(5, tagMap[hit[0].gameObject.tag]); //Adds the objectID of the hit block
-            }
-            else
-            {
-                adjacencies[thisId].addAdjacencies(5, -1); //Adds an air block
-            }
+            generateOverlapSpheres(testPos, 5, thisID);
+
+            adjacencies[thisID].convertToSet();
         }
 
-        Debug.Log(adjacencies);
     }
 
-    // Update is called once per frame
+    void generateOverlapSpheres(Vector3 incVec, int dir, int id) 
+    {
+        Collider[] hit = Physics.OverlapSphere(incVec, .1f); //By taking out world, then I can test for "air" vs. wrappiong
+        if (hit.Length > 1)
+        {
+            adjacencies[id].addAdjacencies(dir, tagMap[hit[0].gameObject.tag]); //Adds the objectID of the hit block
+        }
+        else if (hit.Length == 1) //I've interesected with the manager and that's it
+        {
+            adjacencies[id].addAdjacencies(dir, -1);
+        } else 
+        {
+            //Handle wrapping
+            //build another function that gets the bounds of the collider and then moves "inwards" by one step?
+        }
+
+    }
+
+// Update is called once per frame
     void Update()
     {
 
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (Input.GetKey(KeyCode.Space))
         {
-            if (doOnce)
-            {
-                doOnce = false;
-                StartWFC();
-            }
+            RunWFC();
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+    //unused currently
+    void updateSuperposition(Vector3Int inc) //Takes a map coordinate and compiles the intersection of all fixed nodes around it
+    {
+        List<int> myPossible = objectMap.Keys.ToList(); //Get's every possible tile
+
+        Vector3Int transformed = inc + Vector3Int.up;
+        testSupers(transformed, myPossible, 0);
+
+        transformed = inc + Vector3Int.down;
+        testSupers(transformed, myPossible, 1);
+
+        transformed = inc + Vector3Int.left;
+        testSupers(transformed, myPossible, 2);
+
+        transformed = inc + Vector3Int.right;
+        testSupers(transformed, myPossible, 3);
+
+        transformed = inc + Vector3Int.forward;
+        testSupers(transformed, myPossible, 4);
+
+        transformed = inc + Vector3Int.back;
+        testSupers(transformed, myPossible, 5);
+    }
+
+    //unused currently
+    void testSupers(Vector3Int trans, List<int> poss, int dir) //Trans will ALWAYS be a world coord due to wrapping
+    {
+        if (worldMap[trans.x, trans.y, trans.z].isFixed())
+        {
+            List<int> fixedTileAdjacencies = adjacencies[worldMap[trans.x, trans.y, trans.z].thisTile].getAdjacenciesByDirection(dir); //Gets adjacency for that tile type in that direction
+            poss.Intersect(fixedTileAdjacencies);
         }
     }
 }
