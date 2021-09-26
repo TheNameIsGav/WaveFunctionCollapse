@@ -339,6 +339,29 @@ public class ManagerScript : MonoBehaviour
             adjacencies[id].addAdjacencies(dir, -1);
         } else 
         {
+            //Debug.Log(gameObject.GetComponent<BoxCollider>().size); //.size returns the size of the object in all directions, should get half of each direction for calulations (except y)
+
+            switch (dir)
+            {
+                case 0: //Up
+                    incVec = new Vector3(incVec.x, gameObject.GetComponent<BoxCollider>().size.y, incVec.z);
+                    break;
+                case 1: //Down
+                    incVec = new Vector3(incVec.x, gameObject.GetComponent<BoxCollider>().size.y + incVec.y, incVec.z);
+                    break;
+                case 2: //Left
+                    incVec = new Vector3(gameObject.GetComponent<BoxCollider>().size.x, incVec.y, incVec.z);
+                    break;
+                case 3: //Right
+                    incVec = new Vector3(gameObject.GetComponent<BoxCollider>().size.x + incVec.x, incVec.y, incVec.z);
+                    break;
+                case 4: //Forward
+                    incVec = new Vector3(incVec.x, incVec.y, gameObject.GetComponent<BoxCollider>().size.z);
+                    break;
+                case 5: //Back
+                    incVec = new Vector3(incVec.x, incVec.y, gameObject.GetComponent<BoxCollider>().size.z + incVec.z);
+                    break;
+            }
             //Handle wrapping
             //build another function that gets the bounds of the collider and then moves "inwards" by one step?
         }
