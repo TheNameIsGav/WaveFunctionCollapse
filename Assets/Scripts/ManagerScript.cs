@@ -11,10 +11,11 @@ public class ManagerScript : MonoBehaviour
     public LayerMask world;
     public GameObject tile;
     public GameObject[] worldBlocks;
+    public static ManagerScript instance;
 
     //Possibilites are worldMap ints that Might be a tile
     //Adjacencies are the objectID's that are allowed to be next to the current object
-    private Dictionary<int, Tiles> adjacencies = new Dictionary<int, Tiles>(); //objectID to Tile Object
+    public Dictionary<int, Tiles> adjacencies = new Dictionary<int, Tiles>(); //objectID to Tile Object
     private MapCoordinate[,,] worldMap; //Contains an Arry of Map Coordinates (which have an x, a y, and a list of possible features to spawn) // Will eventually also contain a Z
     private Dictionary<int, GameObject> objectMap = new Dictionary<int, GameObject>(); //maps object ID to gameObject
     private Dictionary<string, int> tagMap = new Dictionary<string, int>(); //Maps tag to object ID
@@ -97,11 +98,53 @@ public class ManagerScript : MonoBehaviour
 
         public Vector3Int getCoords() { return coords; }
 
-        public void Fix() { hasFixed = true; thisTile = possibilites[0]; }
+        /// <summary>
+        /// "Fixes" a node in place and selects one of the possibilites based on occurances
+        /// </summary>
+        public void Fix() { 
+            hasFixed = true;
+
+            List<(float, int)> weighted = new List<(float,int)>(); //List of Weight and Type
+            int totalBlocks = 0;
+            foreach(int i in possibilites) //Count total blocks and add initial occurances
+            {
+                int occurances = ManagerScript.instance.adjacencies[i].occurances;
+                weighted.Add((occurances, i));
+                totalBlocks += occurances;
+
+            }
+
+            float totalWeight = 0;
+            for(int i = 0; i < weighted.Count; i++) 
+            {
+                weighted[i] = (weighted[i].Item1 / totalBlocks, weighted[i].Item2);
+                totalWeight += weighted[i].Item1;
+            }
+
+            float randWeight = Random.Range(0, totalWeight);
+
+            weighted.Sort((x, y) => x.Item1.CompareTo(y.Item1));
+            
+            /*foreach((float x, int y) in weighted)
+            {
+                Debug.Log("Weight: " + x + " Type: " + y);
+            }*/
+
+
+            int selected = 0;
+            for(int i = 1; i < weighted.Count; i++)
+            {
+                if(weighted[i].Item1 > randWeight)
+                {
+                    selected = weighted[i].Item2;
+                    break;
+                }
+            }
+
+            thisTile = selected;
+        }
 
         public bool isFixed() { return hasFixed; }
-
-        public void setTile(int tile) { thisTile = tile; }
 
         override public string ToString()
         {
@@ -125,6 +168,8 @@ public class ManagerScript : MonoBehaviour
 
     private void Awake()
     {
+
+        instance = this;
         //New code for generating adjacency matrix
         box = GetComponent<BoxCollider>();
         //Setup the default adjacencies
@@ -170,14 +215,6 @@ public class ManagerScript : MonoBehaviour
     void WFC() //Selects a random start coordinate and picks one of the valid building blocks, as every map coordinate to begin with has every tile
     {
         MapCoordinate curr = worldMap[(Random.Range(0, width)), Random.Range(0, height), Random.Range(0, length)];
-         
-        List<int> thesePossibilies = curr.getPossibilities();
-
-        List<int> selected = new List<int>();
-        selected.Add(thesePossibilies[Random.Range(0, thesePossibilies.Count())]);
-
-        curr.updatePossibilites(selected);
-
         curr.Fix();//Fix it in place
 
     }
@@ -186,10 +223,6 @@ public class ManagerScript : MonoBehaviour
     {
 
         MapCoordinate curr = worldMap[(Random.Range(0, width)), Random.Range(0, height), Random.Range(0, length)]; //select random map coordinate
-        while (curr.isFixed())
-        {
-            curr = worldMap[(Random.Range(0, width)), Random.Range(0, height), Random.Range(0, length)]; //select until we get a non-fixed node (i.e. a superposition)
-        }
 
         foreach (MapCoordinate mc in worldMap) //Find map coordinate with the least possibilites
         {
@@ -202,54 +235,52 @@ public class ManagerScript : MonoBehaviour
             }
         }
 
-        // Add wrapping
-        //If I go right, I snap to 0, if I go left I snap to width
-        //If I go forward I snap to 0, if I go back I snap to length
-        //Should I do vertical wrapping?
-        //If we get here, then look at all our adjacencies and see if they are fixed, if they are, then we update ourselves
-        Vector3Int trans = inBounds(curr.getCoords() + Vector3Int.up);
-        updateFromAdjacent(trans, curr, 0);
-        
-        trans = inBounds(curr.getCoords() + Vector3Int.down);
-        updateFromAdjacent(trans, curr, 1);
-
-        trans = inBounds(curr.getCoords() + Vector3Int.left);
-        updateFromAdjacent(trans, curr, 2);
-
-        trans = inBounds(curr.getCoords() + Vector3Int.right);
-        updateFromAdjacent(trans, curr, 3);
-
-        trans = inBounds(curr.getCoords() + Vector3Int.forward);
-        updateFromAdjacent(trans, curr, 4);
-
-        trans = inBounds(curr.getCoords() + Vector3Int.back);
-        updateFromAdjacent(trans, curr, 5);
-
-
         if (curr.getPossibilities().Count == 0) //If anything has 0 possibilites, then we fail
         {
             Debug.Log("Impossible Pattern");
             return;
         }
 
-        if (curr.getPossibilities().Count == 1) //If we are at one possibility, then we fix (Is this correct???????????)
-        {
-            curr.Fix();
-        }
+        //At this point, curr should be the node with the least entropy, so we fix it in place
+        curr.Fix();
+
+
+        //After we Fix it, then update all the adjacent nodes
+
+        //TO DO Add wrapping to the "Trans" Vector
+        Vector3Int trans = findBounds(curr.getCoords() + Vector3Int.up);
+        updateFromAdjacent(trans, curr, 0);
+        
+        trans = findBounds(curr.getCoords() + Vector3Int.down);
+        updateFromAdjacent(trans, curr, 1);
+
+        trans = findBounds(curr.getCoords() + Vector3Int.left);
+        updateFromAdjacent(trans, curr, 2);
+
+        trans = findBounds(curr.getCoords() + Vector3Int.right);
+        updateFromAdjacent(trans, curr, 3);
+
+        trans = findBounds(curr.getCoords() + Vector3Int.forward);
+        updateFromAdjacent(trans, curr, 4);
+
+        trans = findBounds(curr.getCoords() + Vector3Int.back);
+        updateFromAdjacent(trans, curr, 5);
+
     }
 
-    void updateFromAdjacent(Vector3Int trans, MapCoordinate curr, int dir) //Updates mapcoordinates possibilites with intersection of adjacent fixed nodes
+    void updateFromAdjacent(Vector3Int trans, MapCoordinate curr, int dir) //Curr is the just fixed node, trans is the node to be updating
     {
-        if (worldMap[trans.x, trans.y, trans.z].isFixed())
+        if (!worldMap[trans.x, trans.y, trans.z].isFixed()) //If the node is not fixed
         {
-            List<int> fixedTileAdjacencies = adjacencies[worldMap[trans.x, trans.y, trans.z].thisTile].getAdjacenciesByDirection(0); //Gets adjacency for that tile type in that direction
-            List<int> tmp = curr.getPossibilities();
-            tmp.Intersect(fixedTileAdjacencies);
-            curr.updatePossibilites(tmp);
+            List<int> fixedTileAdjacencies = adjacencies[curr.thisTile].getAdjacenciesByDirection(dir); //Gets adjacency for that tile type in that direction
+            MapCoordinate nodeToUpdate = worldMap[trans.x, trans.y, trans.z]; //Get the node to update
+            List<int> tmp = nodeToUpdate.getPossibilities(); //Get it's possibilites
+            tmp.Intersect(fixedTileAdjacencies); //Intersect it
+            nodeToUpdate.updatePossibilites(tmp); //Update the nodes to the intersection
         }
     }
 
-    Vector3Int inBounds(Vector3Int incVec) //Proper usage of this function: call on a transformed vector and will return the correct map coordinate to modify
+    Vector3Int findBounds(Vector3Int incVec) //Proper usage of this function: call on a transformed vector and will return the correct map coordinate to modify
     {
         if(incVec.x >= width)
         {
@@ -279,7 +310,7 @@ public class ManagerScript : MonoBehaviour
         }
 
         return incVec;
-    } //if this returns false then we wrap, maybe change to int to indicate which direction it returned false in;
+    }
 
     void buildAdjacencyMatrix()
     {
@@ -340,26 +371,80 @@ public class ManagerScript : MonoBehaviour
         } else 
         {
             //Debug.Log(gameObject.GetComponent<BoxCollider>().size); //.size returns the size of the object in all directions, should get half of each direction for calulations (except y)
-
+            
             switch (dir)
             {
                 case 0: //Up
                     incVec = new Vector3(incVec.x, gameObject.GetComponent<BoxCollider>().size.y, incVec.z);
+                    hit = Physics.OverlapSphere(incVec, .1f); 
+                    if (hit.Length > 1)
+                    {
+                        adjacencies[id].addAdjacencies(dir, tagMap[hit[0].gameObject.tag]); 
+                    }
+                    else if (hit.Length == 1) 
+                    {
+                        adjacencies[id].addAdjacencies(dir, -1);
+                    }
                     break;
                 case 1: //Down
                     incVec = new Vector3(incVec.x, gameObject.GetComponent<BoxCollider>().size.y + incVec.y, incVec.z);
+                    hit = Physics.OverlapSphere(incVec, .1f);
+                    if (hit.Length > 1)
+                    {
+                        adjacencies[id].addAdjacencies(dir, tagMap[hit[0].gameObject.tag]);
+                    }
+                    else if (hit.Length == 1)
+                    {
+                        adjacencies[id].addAdjacencies(dir, -1);
+                    }
                     break;
                 case 2: //Left
                     incVec = new Vector3(gameObject.GetComponent<BoxCollider>().size.x, incVec.y, incVec.z);
+                    hit = Physics.OverlapSphere(incVec, .1f);
+                    if (hit.Length > 1)
+                    {
+                        adjacencies[id].addAdjacencies(dir, tagMap[hit[0].gameObject.tag]);
+                    }
+                    else if (hit.Length == 1)
+                    {
+                        adjacencies[id].addAdjacencies(dir, -1);
+                    }
                     break;
                 case 3: //Right
                     incVec = new Vector3(gameObject.GetComponent<BoxCollider>().size.x + incVec.x, incVec.y, incVec.z);
+                    hit = Physics.OverlapSphere(incVec, .1f);
+                    if (hit.Length > 1)
+                    {
+                        adjacencies[id].addAdjacencies(dir, tagMap[hit[0].gameObject.tag]);
+                    }
+                    else if (hit.Length == 1)
+                    {
+                        adjacencies[id].addAdjacencies(dir, -1);
+                    }
                     break;
                 case 4: //Forward
                     incVec = new Vector3(incVec.x, incVec.y, gameObject.GetComponent<BoxCollider>().size.z);
+                    hit = Physics.OverlapSphere(incVec, .1f);
+                    if (hit.Length > 1)
+                    {
+                        adjacencies[id].addAdjacencies(dir, tagMap[hit[0].gameObject.tag]);
+                    }
+                    else if (hit.Length == 1)
+                    {
+                        adjacencies[id].addAdjacencies(dir, -1);
+                    }
                     break;
                 case 5: //Back
                     incVec = new Vector3(incVec.x, incVec.y, gameObject.GetComponent<BoxCollider>().size.z + incVec.z);
+                    hit = Physics.OverlapSphere(incVec, .1f);
+                    if (hit.Length > 1)
+                    {
+                        adjacencies[id].addAdjacencies(dir, tagMap[hit[0].gameObject.tag]);
+                    }
+                    else if (hit.Length == 1)
+                    {
+                        adjacencies[id].addAdjacencies(dir, -1);
+                    }
                     break;
             }
             //Handle wrapping
