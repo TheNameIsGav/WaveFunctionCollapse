@@ -141,6 +141,10 @@ public class ManagerScript : MonoBehaviour
                 }
             }
 
+            foreach((float weight, int tile) in weighted)
+            {
+                Debug.Log("Weight of " + tile + " is " + weight);
+            }
             thisTile = selected;
         }
 
@@ -175,12 +179,13 @@ public class ManagerScript : MonoBehaviour
         //Setup the default adjacencies
         worldMap = new MapCoordinate[width, height, length];
 
-        for (int i = 0; i < transform.childCount; i++) //"Building Blocks" are children of the manager
+        for (int i = 0; i < worldBlocks.Count(); i++) //"Building Blocks" are children of the manager
         {
-            objectMap.Add(i, transform.GetChild(i).gameObject); //Add all possible tiles to the objectMap with their ID
-            tagMap.Add(transform.GetChild(i).tag, i); //Map the correct tag to the object ID for use later.
+            objectMap.Add(i, worldBlocks[i].gameObject); //Add all possible tiles to the objectMap with their ID
+            tagMap.Add(worldBlocks[i].tag, i); //Map the correct tag to the object ID for use later.
             adjacencies.Add(i, new Tiles(i)); //Add a 0 occurance version of the tile to the map for later use
         }
+
 
         buildAdjacencyMatrix();
         printAdjacencyMatrix();
@@ -201,7 +206,7 @@ public class ManagerScript : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        WFC();
+        
     }
 
     private void printAdjacencyMatrix()
@@ -212,28 +217,26 @@ public class ManagerScript : MonoBehaviour
         }
     }
 
-    void WFC() //Selects a random start coordinate and picks one of the valid building blocks, as every map coordinate to begin with has every tile
-    {
-        MapCoordinate curr = worldMap[(Random.Range(0, width)), Random.Range(0, height), Random.Range(0, length)];
-        curr.Fix();//Fix it in place
-
-    }
-
     void RunWFC()
     {
 
         MapCoordinate curr = worldMap[(Random.Range(0, width)), Random.Range(0, height), Random.Range(0, length)]; //select random map coordinate
+        //Debug.Log(curr.getPossibilities().Count);
 
         foreach (MapCoordinate mc in worldMap) //Find map coordinate with the least possibilites
         {
             if (!mc.isFixed()) //if current map coordinate isn't fixed
             {
+                //Debug.Log(mc.getPossibilities().Count);
                 if (mc.getPossibilities().Count < curr.getPossibilities().Count) //if it has less possibilites than the random one we selected
                 {
+                    
                     curr = mc; //asign it 
                 }
             }
         }
+
+        Debug.Log("Found low entropy unit at " + curr.getCoords());
 
         if (curr.getPossibilities().Count == 0) //If anything has 0 possibilites, then we fail
         {
@@ -246,8 +249,7 @@ public class ManagerScript : MonoBehaviour
 
 
         //After we Fix it, then update all the adjacent nodes
-
-        //TO DO Add wrapping to the "Trans" Vector
+        
         Vector3Int trans = findBounds(curr.getCoords() + Vector3Int.up);
         updateFromAdjacent(trans, curr, 0);
         
@@ -266,19 +268,38 @@ public class ManagerScript : MonoBehaviour
         trans = findBounds(curr.getCoords() + Vector3Int.back);
         updateFromAdjacent(trans, curr, 5);
 
+        //Spawn the fixed map coordinate
+        if(curr.thisTile != -1)
+        {
+            Object.Instantiate(objectMap[curr.thisTile], curr.getCoords(), Quaternion.identity); //curr.GetCoords would need to be multiplied by the size of the chunk eventually
+        }
     }
 
     void updateFromAdjacent(Vector3Int trans, MapCoordinate curr, int dir) //Curr is the just fixed node, trans is the node to be updating
     {
-        if (!worldMap[trans.x, trans.y, trans.z].isFixed()) //If the node is not fixed
+        if (!worldMap[trans.x, trans.y, trans.z].isFixed() && curr.thisTile != -1) //If the node is not fixed, maybe fix for AIR
         {
             List<int> fixedTileAdjacencies = adjacencies[curr.thisTile].getAdjacenciesByDirection(dir); //Gets adjacency for that tile type in that direction
             MapCoordinate nodeToUpdate = worldMap[trans.x, trans.y, trans.z]; //Get the node to update
             List<int> tmp = nodeToUpdate.getPossibilities(); //Get it's possibilites
             tmp.Intersect(fixedTileAdjacencies); //Intersect it
             nodeToUpdate.updatePossibilites(tmp); //Update the nodes to the intersection
+            worldMap[trans.x, trans.y, trans.z] = nodeToUpdate;
+
+            //Debug.Log("Updating " + trans + " with the appropriate adjacencies of " + PrintIntList(fixedTileAdjacencies) + "\n Combining that with the list " + PrintIntList(tmp) + " yielded " + PrintIntList(nodeToUpdate.getPossibilities()));
         }
     }
+
+    string PrintIntList(List<int> list)
+    {
+        string ret = "";
+        foreach(int elem in list)
+        {
+            ret += elem + ", ";
+        }
+        return ret;
+    }
+
 
     Vector3Int findBounds(Vector3Int incVec) //Proper usage of this function: call on a transformed vector and will return the correct map coordinate to modify
     {
@@ -288,7 +309,7 @@ public class ManagerScript : MonoBehaviour
         }
         if(incVec.x < 0)
         {
-            return new Vector3Int(width, incVec.y, incVec.z);
+            return new Vector3Int(width-1, incVec.y, incVec.z);
         }
 
         if (incVec.y >= height)
@@ -297,7 +318,7 @@ public class ManagerScript : MonoBehaviour
         }
         if(incVec.y < 0)
         {
-            return new Vector3Int(incVec.x, height , incVec.z);
+            return new Vector3Int(incVec.x, height-1 , incVec.z);
         }
 
         if (incVec.z >= length)
@@ -306,7 +327,7 @@ public class ManagerScript : MonoBehaviour
         }
         if(incVec.z < 0)
         {
-            return new Vector3Int(incVec.x, incVec.y, length);
+            return new Vector3Int(incVec.x, incVec.y, length-1);
         }
 
         return incVec;
@@ -368,6 +389,7 @@ public class ManagerScript : MonoBehaviour
         else if (hit.Length == 1) //I've interesected with the manager and that's it
         {
             adjacencies[id].addAdjacencies(dir, -1);
+            adjacencies[tagMap["AirTag"]].occurances++; //Adds an instance of "AIR" //TODO (Maybe) calculate adjacencies of air?
         } else 
         {
             //Debug.Log(gameObject.GetComponent<BoxCollider>().size); //.size returns the size of the object in all directions, should get half of each direction for calulations (except y)
@@ -457,7 +479,7 @@ public class ManagerScript : MonoBehaviour
     void Update()
     {
 
-        if (Input.GetKey(KeyCode.Space))
+        if (Input.GetKeyDown(KeyCode.Space))
         {
             RunWFC();
         }
