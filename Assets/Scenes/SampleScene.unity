@@ -545,9 +545,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7b3189a9b0b62bd4f9546915426eb5e6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  width: 5
-  height: 5
-  length: 5
+  width: 2
+  height: 2
+  length: 2
   world:
     serializedVersion: 2
     m_Bits: 8
