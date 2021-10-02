@@ -125,10 +125,10 @@ public class ManagerScript : MonoBehaviour
 
             weighted.Sort((x, y) => x.Item1.CompareTo(y.Item1));
             
-            /*foreach((float x, int y) in weighted)
+            foreach((float x, int y) in weighted)
             {
                 Debug.Log("Weight: " + x + " Type: " + y);
-            }*/
+            }
 
 
             int selected = 0;
@@ -182,38 +182,20 @@ public class ManagerScript : MonoBehaviour
 
         for (int i = 0; i < worldBlocks.Count(); i++) //"Building Blocks" are children of the manager
         {
-            objectMap.Add(i, worldBlocks[i].gameObject); //Add all possible tiles to the objectMap with their ID
+            objectMap.Add(i, worldBlocks[i]); //Add all possible tiles to the objectMap with their ID
             tagMap.Add(worldBlocks[i].tag, i); //Map the correct tag to the object ID for use later.
             adjacencies.Add(i, new Tiles(i)); //Add a 0 occurance version of the tile to the map for later use
+        }
+
+        foreach(string e in tagMap.Keys.ToList())
+        {
+            //Debug.Log(e + "\n");
         }
 
         
 
         buildAdjacencyMatrix();
-
-        adjacencies[0].addAdjacencies(0, 0);
-        adjacencies[0].addAdjacencies(0, 1);
-        adjacencies[0].addAdjacencies(0, 2);
-        adjacencies[0].addAdjacencies(1, 0);
-        adjacencies[0].addAdjacencies(1, 1);
-        adjacencies[0].addAdjacencies(1, 2);
-        adjacencies[0].addAdjacencies(2, 0);
-        adjacencies[0].addAdjacencies(2, 1);
-        adjacencies[0].addAdjacencies(2, 2);
-        adjacencies[0].addAdjacencies(3, 1);
-        adjacencies[0].addAdjacencies(3, 2);
-        adjacencies[0].addAdjacencies(3, 0);
-        adjacencies[0].addAdjacencies(4, 0);
-        adjacencies[0].addAdjacencies(4, 1);
-        adjacencies[0].addAdjacencies(4, 2);
-        adjacencies[0].addAdjacencies(5, 0);
-        adjacencies[0].addAdjacencies(5, 1);
-        adjacencies[0].addAdjacencies(5, 2);
-        adjacencies[0].convertToSet();
-
-
         printAdjacencyMatrix();
-
 
 
         //Setup the world map
@@ -245,7 +227,7 @@ public class ManagerScript : MonoBehaviour
 
     void RunWFC()
     {
-        Debug.Log("Running WFC");
+        //Debug.Log("Running WFC");
         MapCoordinate curr = null; //worldMap[(Random.Range(0, width)), Random.Range(0, height), Random.Range(0, length)]; //select random map coordinate
         //Debug.Log(curr.getPossibilities().Count);
 
@@ -253,7 +235,7 @@ public class ManagerScript : MonoBehaviour
 
         foreach(MapCoordinate mc in worldMap)
         {
-            Debug.Log(mc.getCoords() + " " + mc.getPossibilities().Count);
+            //Debug.Log(mc.getCoords() + " " + mc.getPossibilities().Count);
         }
 
         foreach (MapCoordinate mc in worldMap) //Find map coordinate with the least possibilites
@@ -271,11 +253,12 @@ public class ManagerScript : MonoBehaviour
             }
         }
 
-        Debug.Log("Found low entropy unit at " + curr.getCoords());
+       // Debug.Log("Found low entropy unit at " + curr.getCoords());
 
         if (curr.getPossibilities().Count == 0) //If anything has 0 possibilites, then we fail
         {
-            Debug.LogError("Impossible Pattern");
+            
+            Debug.LogError("Impossible Pattern @ " + curr.getCoords());
             return;
         }
 
@@ -306,7 +289,7 @@ public class ManagerScript : MonoBehaviour
 
         foreach (MapCoordinate mc in worldMap)
         {
-            Debug.Log(mc.getCoords() + " " + mc.getPossibilities().Count);
+            //Debug.Log(mc.getCoords() + " " + mc.getPossibilities().Count);
         }
 
         //Spawn the fixed map coordinate
@@ -327,7 +310,7 @@ public class ManagerScript : MonoBehaviour
             nodeToUpdate.updatePossibilites(tmp); //Update the nodes to the intersection
             worldMap[trans.x, trans.y, trans.z] = nodeToUpdate;
 
-            Debug.Log("Updating " + trans + " with the appropriate adjacencies of " + PrintIntList(fixedTileAdjacencies) + "\n Combining that with the list " + PrintIntList(tmp) + " yielded " + PrintIntList(nodeToUpdate.getPossibilities()));
+            //Debug.Log("Updating " + trans + " with the appropriate adjacencies of " + PrintIntList(fixedTileAdjacencies) + "\n Combining that with the list " + PrintIntList(tmp) + " yielded " + PrintIntList(nodeToUpdate.getPossibilities()));
         }
     }
 
@@ -342,7 +325,11 @@ public class ManagerScript : MonoBehaviour
         return ret;
     }
 
-
+    /// <summary>
+    /// Used for finding bounds around the output layer
+    /// </summary>
+    /// <param name="incVec"></param>
+    /// <returns></returns>
     Vector3Int findBounds(Vector3Int incVec) //Proper usage of this function: call on a transformed vector and will return the correct map coordinate to modify
     {
         //Debug.Log("Finding bounds for " + incVec);
@@ -376,200 +363,135 @@ public class ManagerScript : MonoBehaviour
         return incVec;
     }
 
+
+    /// <summary>
+    /// Used for finding bounds around the input layer
+    /// </summary>
+    /// <param name="minVec"></param>
+    /// <param name="maxVec"></param>
+    /// <param name="incVec"></param>
+    /// <returns></returns>
+    Vector3Int findBoundsInputLayer(Vector3Int minVec, Vector3Int maxVec, Vector3Int incVec)
+    {
+        if (incVec.x >= maxVec.x)
+        {
+            return new Vector3Int(minVec.x, incVec.y, incVec.z);
+        }
+        if (incVec.x < minVec.x)
+        {
+            return new Vector3Int(maxVec.x, incVec.y, incVec.z);
+        }
+
+        if (incVec.y >= maxVec.y)
+        {
+            return new Vector3Int(incVec.x, minVec.y, incVec.z);
+        }
+        if (incVec.y < minVec.y)
+        {
+            return new Vector3Int(incVec.x, maxVec.y, incVec.z);
+        }
+
+        if (incVec.z >= maxVec.z)
+        {
+            return new Vector3Int(incVec.x, incVec.y, minVec.z);
+        }
+        if (incVec.z < minVec.z)
+        {
+            return new Vector3Int(incVec.x, incVec.y, maxVec.y);
+        }
+
+        return incVec;
+    }
+
     void buildAdjacencyMatrix()
     {
         //Blocks are 1x1 and are spaced 1 unit apart
         Collider[] tmp = Physics.OverlapBox(transform.position, box.bounds.extents);
 
-        foreach (Collider c in tmp)
+
+        //Keep the size of the bounding box to an odd number so that the conversions work correctly
+        Vector3Int minVec = new Vector3Int((int)transform.position.x - (int)(box.size.x / 2), (int)transform.position.y - (int)(box.size.y / 2), (int)transform.position.z - (int)(box.size.z / 2));
+        Vector3Int maxVec = new Vector3Int((int)transform.position.x + (int)(box.size.x / 2), (int)transform.position.y + (int)(box.size.y / 2), (int)transform.position.z + (int)(box.size.z / 2));
+
+
+        for(int x = minVec.x; x <= maxVec.x; x++)
         {
-            GameObject obj = c.gameObject;
-            if (obj.CompareTag("Manager"))
+            for(int y = minVec.y; y <= maxVec.y; y++)
             {
-                break;
+                for(int z = minVec.z; z <= maxVec.z; z++)
+                {
+                    Vector3Int incVec = new Vector3Int(x, y, z);
+                    //Debug.Log(incVec);
+                    Collider[] hit = Physics.OverlapSphere(incVec, .1f, world);
+
+                    //Debug.Log(hit.Length);
+                    GameObject obj;
+
+                    if (hit.Length == 1) //Hit a block
+                    {
+                        obj = hit[0].gameObject;
+                    } else //Hit an air block
+                    {
+                        obj = worldBlocks[0];
+                    }
+
+                    int thisID = tagMap[obj.tag];
+                    //Debug.Log(thisID);
+                    adjacencies[thisID].occurances++; //We have seen an instances of the object
+                    adjacencies[thisID].name = objectMap[thisID].name;
+                    Vector3 testPos;
+
+                    testPos = findBoundsInputLayer(minVec, maxVec, incVec + Vector3Int.up); //Would need to be multiplied by the block size
+                    
+                    generateOverlapSpheres(testPos, 0, thisID);
+
+                    //Down
+                    testPos = findBoundsInputLayer(minVec, maxVec, incVec + Vector3Int.down); //Would need to be multiplied by the block size
+                    generateOverlapSpheres(testPos, 1, thisID);
+
+                    //Left
+                    testPos = findBoundsInputLayer(minVec, maxVec, incVec + Vector3Int.left); //Would need to be multiplied by the block size
+                    generateOverlapSpheres(testPos, 2, thisID);
+
+                    //Right
+                    testPos = findBoundsInputLayer(minVec, maxVec, incVec + Vector3Int.right); //Would need to be multiplied by the block size
+                    generateOverlapSpheres(testPos, 3, thisID);
+
+                    //Forward
+                    testPos = findBoundsInputLayer(minVec, maxVec, incVec + Vector3Int.forward); //Would need to be multiplied by the block size
+                    generateOverlapSpheres(testPos, 4, thisID);
+
+                    //Back
+                    testPos = findBoundsInputLayer(minVec, maxVec, incVec + Vector3Int.back); //Would need to be multiplied by the block size
+                    generateOverlapSpheres(testPos, 5, thisID);
+
+                    adjacencies[thisID].convertToSet();
+
+                }
             }
-            int thisID = tagMap[obj.tag];
-            adjacencies[thisID].occurances++; //We have seen an instances of the object
-            adjacencies[thisID].name = objectMap[thisID].name;
-            Vector3 testPos;
-
-            //Up
-            testPos = obj.transform.position + Vector3.up; //Would need to be multiplied by the block size
-            generateOverlapSpheres(testPos, 0, thisID);
-
-            //Down
-            testPos = obj.transform.position + Vector3.down; //Would need to be multiplied by the block size
-            generateOverlapSpheres(testPos, 1, thisID);
-
-            //Left
-            testPos = obj.transform.position + Vector3.left; //Would need to be multiplied by the block size
-            generateOverlapSpheres(testPos, 2, thisID);
-
-            //Right
-            testPos = obj.transform.position + Vector3.right; //Would need to be multiplied by the block size
-            generateOverlapSpheres(testPos, 3, thisID);
-
-            //Forward
-            testPos = obj.transform.position + Vector3.forward; //Would need to be multiplied by the block size
-            generateOverlapSpheres(testPos, 4, thisID);
-
-            //Back
-            testPos = obj.transform.position + Vector3.back; //Would need to be multiplied by the block size
-            generateOverlapSpheres(testPos, 5, thisID);
-
-            adjacencies[thisID].convertToSet();
         }
-
     }
 
     void generateOverlapSpheres(Vector3 incVec, int dir, int id) 
     {
-        Collider[] hit = Physics.OverlapSphere(incVec, .1f); //By taking out world, then I can test for "air" vs. wrappiong
-        if (hit.Length > 1)
+        Collider[] hit = Physics.OverlapSphere(incVec, .1f, world); //By taking out world, then I can test for "air" vs. wrappiong
+        if (hit.Length >= 1)
         {
             adjacencies[id].addAdjacencies(dir, tagMap[hit[0].gameObject.tag]); //Adds the objectID of the hit block
         }
-        else if (hit.Length == 1) //I've interesected with the manager and that's it
+        else  //I've interesected with the manager and that's it
         {
-            //adjacencies[id].addAdjacencies(dir, -1);
-            adjacencies[tagMap["AirTag"]].occurances++; //Adds an instance of "AIR" //TODO (Maybe) calculate adjacencies of air?
-        } else 
-        {
-            //Debug.Log(gameObject.GetComponent<BoxCollider>().size); //.size returns the size of the object in all directions, should get half of each direction for calulations (except y)
-            
-            switch (dir)
-            {
-                case 0: //Up
-                    incVec = new Vector3(incVec.x, gameObject.GetComponent<BoxCollider>().size.y, incVec.z);
-                    hit = Physics.OverlapSphere(incVec, .1f); 
-                    if (hit.Length > 1)
-                    {
-                        adjacencies[id].addAdjacencies(dir, tagMap[hit[0].gameObject.tag]); 
-                    }
-                    else if (hit.Length == 1) 
-                    {
-                        adjacencies[id].addAdjacencies(dir, -1);
-                    }
-                    break;
-                case 1: //Down
-                    incVec = new Vector3(incVec.x, gameObject.GetComponent<BoxCollider>().size.y + incVec.y, incVec.z);
-                    hit = Physics.OverlapSphere(incVec, .1f);
-                    if (hit.Length > 1)
-                    {
-                        adjacencies[id].addAdjacencies(dir, tagMap[hit[0].gameObject.tag]);
-                    }
-                    else if (hit.Length == 1)
-                    {
-                        adjacencies[id].addAdjacencies(dir, -1);
-                    }
-                    break;
-                case 2: //Left
-                    incVec = new Vector3(gameObject.GetComponent<BoxCollider>().size.x, incVec.y, incVec.z);
-                    hit = Physics.OverlapSphere(incVec, .1f);
-                    if (hit.Length > 1)
-                    {
-                        adjacencies[id].addAdjacencies(dir, tagMap[hit[0].gameObject.tag]);
-                    }
-                    else if (hit.Length == 1)
-                    {
-                        adjacencies[id].addAdjacencies(dir, -1);
-                    }
-                    break;
-                case 3: //Right
-                    incVec = new Vector3(gameObject.GetComponent<BoxCollider>().size.x + incVec.x, incVec.y, incVec.z);
-                    hit = Physics.OverlapSphere(incVec, .1f);
-                    if (hit.Length > 1)
-                    {
-                        adjacencies[id].addAdjacencies(dir, tagMap[hit[0].gameObject.tag]);
-                    }
-                    else if (hit.Length == 1)
-                    {
-                        adjacencies[id].addAdjacencies(dir, -1);
-                    }
-                    break;
-                case 4: //Forward
-                    incVec = new Vector3(incVec.x, incVec.y, gameObject.GetComponent<BoxCollider>().size.z);
-                    hit = Physics.OverlapSphere(incVec, .1f);
-                    if (hit.Length > 1)
-                    {
-                        adjacencies[id].addAdjacencies(dir, tagMap[hit[0].gameObject.tag]);
-                    }
-                    else if (hit.Length == 1)
-                    {
-                        adjacencies[id].addAdjacencies(dir, -1);
-                    }
-                    break;
-                case 5: //Back
-                    incVec = new Vector3(incVec.x, incVec.y, gameObject.GetComponent<BoxCollider>().size.z + incVec.z);
-                    hit = Physics.OverlapSphere(incVec, .1f);
-                    if (hit.Length > 1)
-                    {
-                        adjacencies[id].addAdjacencies(dir, tagMap[hit[0].gameObject.tag]);
-                    }
-                    else if (hit.Length == 1)
-                    {
-                        adjacencies[id].addAdjacencies(dir, -1);
-                    }
-                    break;
-            }
-            //Handle wrapping
-            //build another function that gets the bounds of the collider and then moves "inwards" by one step?
+            adjacencies[id].addAdjacencies(dir, tagMap["AirTag"]); //Adds an instance of "AIR" //TODO (Maybe) calculate adjacencies of air?
         }
-
     }
 
 // Update is called once per frame
     void Update()
     {
-
         if (Input.GetKeyDown(KeyCode.Space))
         {
             RunWFC();
         }
     }
 
-
-
-
-
-
-
-
-
-
-
-
-    //unused currently
-    void updateSuperposition(Vector3Int inc) //Takes a map coordinate and compiles the intersection of all fixed nodes around it
-    {
-        List<int> myPossible = objectMap.Keys.ToList(); //Get's every possible tile
-
-        Vector3Int transformed = inc + Vector3Int.up;
-        testSupers(transformed, myPossible, 0);
-
-        transformed = inc + Vector3Int.down;
-        testSupers(transformed, myPossible, 1);
-
-        transformed = inc + Vector3Int.left;
-        testSupers(transformed, myPossible, 2);
-
-        transformed = inc + Vector3Int.right;
-        testSupers(transformed, myPossible, 3);
-
-        transformed = inc + Vector3Int.forward;
-        testSupers(transformed, myPossible, 4);
-
-        transformed = inc + Vector3Int.back;
-        testSupers(transformed, myPossible, 5);
-    }
-
-    //unused currently
-    void testSupers(Vector3Int trans, List<int> poss, int dir) //Trans will ALWAYS be a world coord due to wrapping
-    {
-        if (worldMap[trans.x, trans.y, trans.z].isFixed())
-        {
-            List<int> fixedTileAdjacencies = adjacencies[worldMap[trans.x, trans.y, trans.z].thisTile].getAdjacenciesByDirection(dir); //Gets adjacency for that tile type in that direction
-            poss.Intersect(fixedTileAdjacencies);
-        }
-    }
 }
