@@ -195,6 +195,16 @@ public class ManagerScript : MonoBehaviour
         
 
         buildAdjacencyMatrix();
+
+
+        foreach(int key in objectMap.Keys)
+        {
+            for(int i = 0; i < 6; i++)
+            {
+                adjacencies[tagMap["AirTag"]].addAdjacencies(i, key);
+            }
+        }
+        adjacencies[tagMap["AirTag"]].convertToSet();
         printAdjacencyMatrix();
 
 
