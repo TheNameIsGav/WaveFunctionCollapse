@@ -1,8 +1,13 @@
 package net.fabricmc.wavy;
 
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.command.v1.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.item.v1.FabricItemSettings;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.item.ItemGroup;
+import net.minecraft.network.MessageType;
+import net.minecraft.server.command.CommandManager;
+import net.minecraft.text.LiteralText;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.registry.Registry;
 
@@ -13,8 +18,10 @@ public class WFC implements ModInitializer {
 	// This logger is used to write text to the console and the log file.
 	// It is considered best practice to use your mod id as the logger's name.
 	// That way, it's clear which mod wrote info, warnings, and errors.
-	public static final Logger LOGGER = LogManager.getLogger("modid");
-	public static final WaveFunctionDriver FABRIC_ITEM = new WaveFunctionDriver(new FabricItemSettings().group(ItemGroup.MISC));
+	public static WaveDriver waveDriver = new WaveDriver();
+	public static final Logger LOGGER = LogManager.getLogger("WFC");
+	public static final WaveFunctionItem FABRIC_ITEM = new WaveFunctionItem(new FabricItemSettings().group(ItemGroup.MISC));
+	public static final WaveFunctionItem2 FABRIC_ITEM2 = new WaveFunctionItem2(new FabricItemSettings().group(ItemGroup.MISC));
 
 	@Override
 	public void onInitialize() {
@@ -22,6 +29,31 @@ public class WFC implements ModInitializer {
 		// However, some things (like resources) may still be uninitialized.
 		// Proceed with mild caution.
 		Registry.register(Registry.ITEM, new Identifier("wfc", "fabric_item"), FABRIC_ITEM);
+		Registry.register(Registry.ITEM, new Identifier("wfc", "fabric_item2"), FABRIC_ITEM2);
+
+		//Command to begin running WFC
+		CommandRegistrationCallback.EVENT.register((dispatcher, decdicated) -> {
+			dispatcher.register(CommandManager.literal("runWFC").executes(context-> {
+				MinecraftClient mc = MinecraftClient.getInstance();
+
+				//Setup the initial requirements for the Wave Driving function
+				waveDriver.Constraint(125);
+				waveDriver.Mc(mc);
+				int ret = waveDriver.firstStepWFC();
+				mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("WFC finished with value " + ret), mc.player.getUuid());
+				return 1;
+			}));
+		});
+
+		CommandRegistrationCallback.EVENT.register((dispatcher, decdicated) -> {
+			dispatcher.register(CommandManager.literal("constrain").executes(context-> {
+				MinecraftClient mc = MinecraftClient.getInstance();
+				mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("This command doesn't work yet"), mc.player.getUuid());
+				return 1;
+			}));
+		});
+
 		LOGGER.info("Hello Fabric world!");
 	}
+
 }
