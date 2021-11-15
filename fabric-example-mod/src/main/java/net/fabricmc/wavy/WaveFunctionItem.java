@@ -35,6 +35,7 @@ public class WaveFunctionItem extends Item {
             MinecraftClient mc = MinecraftClient.getInstance();
             mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("Set position 1 to: " + str), ctx.getPlayer().getUuid());
             WFC.waveDriver.Pos1(ctx.getBlockPos());
+            WFC.waveDriver.World(ctx.getWorld());
         }
         return ActionResult.PASS;
     }
