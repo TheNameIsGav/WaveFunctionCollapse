@@ -22,6 +22,8 @@ public class WFC implements ModInitializer {
 	public static final Logger LOGGER = LogManager.getLogger("WFC");
 	public static final WaveFunctionItem FABRIC_ITEM = new WaveFunctionItem(new FabricItemSettings().group(ItemGroup.MISC));
 	public static final WaveFunctionItem2 FABRIC_ITEM2 = new WaveFunctionItem2(new FabricItemSettings().group(ItemGroup.MISC));
+	public static final WaveRunnerItem RUN_ITEM = new WaveRunnerItem(new FabricItemSettings().group(ItemGroup.MISC));
+	public static final WaveRunnerItem2 RUN_ITEM2 = new WaveRunnerItem2(new FabricItemSettings().group(ItemGroup.MISC));
 
 	@Override
 	public void onInitialize() {
@@ -30,17 +32,29 @@ public class WFC implements ModInitializer {
 		// Proceed with mild caution.
 		Registry.register(Registry.ITEM, new Identifier("wfc", "fabric_item"), FABRIC_ITEM);
 		Registry.register(Registry.ITEM, new Identifier("wfc", "fabric_item2"), FABRIC_ITEM2);
+		Registry.register(Registry.ITEM, new Identifier("wfc", "run_item"), RUN_ITEM);
+		Registry.register(Registry.ITEM, new Identifier("wfc", "run_item2"), RUN_ITEM2);
 
-		//Command to begin running WFC
+		//Command to load in the adjacencies for WFC
 		CommandRegistrationCallback.EVENT.register((dispatcher, decdicated) -> {
-			dispatcher.register(CommandManager.literal("runWFC").executes(context-> {
+			dispatcher.register(CommandManager.literal("loadWFC").executes(context-> {
 				MinecraftClient mc = MinecraftClient.getInstance();
 
 				//Setup the initial requirements for the Wave Driving function
 				waveDriver.Constraint(125);
 				waveDriver.Mc(mc);
 				int ret = waveDriver.firstStepWFC();
-				mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("WFC finished with value " + ret), mc.player.getUuid());
+				mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("First WFC finished with value " + ret), mc.player.getUuid());
+				return 1;
+			}));
+		});
+
+		CommandRegistrationCallback.EVENT.register((dispatcher, decdicated) -> {
+			dispatcher.register(CommandManager.literal("runWFC").executes(context-> {
+				MinecraftClient mc = MinecraftClient.getInstance();
+				waveDriver.Mc(mc);
+				int ret = waveDriver.secondStepWFC();
+				mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("Second WFC finished with value " + ret), mc.player.getUuid());
 				return 1;
 			}));
 		});

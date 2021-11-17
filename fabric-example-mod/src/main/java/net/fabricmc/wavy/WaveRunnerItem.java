@@ -11,9 +11,9 @@ import net.minecraft.util.ActionResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
-public class WaveFunctionItem2 extends Item {
+public class WaveRunnerItem extends Item {
     
-    public WaveFunctionItem2(Settings settings) {
+    public WaveRunnerItem(Settings settings) {
         super(settings);
     }
 
@@ -22,8 +22,9 @@ public class WaveFunctionItem2 extends Item {
         if(ctx.getWorld().isClient()) {
             String str = ctx.getBlockPos().toString();
             MinecraftClient mc = MinecraftClient.getInstance();
-            mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("Set position 2 to: " + str), ctx.getPlayer().getUuid());
-            WFC.waveDriver.Pos2(ctx.getBlockPos());
+            mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("Set run position 1 to: " + str), ctx.getPlayer().getUuid());
+            WFC.waveDriver.Run1(ctx.getBlockPos());
+            WFC.waveDriver.World(ctx.getWorld());
         }
         return ActionResult.PASS;
     }
