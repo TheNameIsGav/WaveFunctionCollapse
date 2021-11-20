@@ -1,8 +1,10 @@
 package net.fabricmc.wavy;
 
+
 import java.util.*;
 
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.network.MessageType;
 import net.minecraft.text.LiteralText;
@@ -44,11 +46,11 @@ public class WaveDriver {
     //private Vector3d wrap = new Vector3d(1, 0, 1);
 
     //Used to convert from an intger to a block. Used when initially reading through the input
-    Map<Integer, Block> integerToBlockMap = new HashMap<Integer, Block>( );
-    Map<Block, Integer> blockToIntegerMap = new HashMap<Block, Integer>( );
+    Map<Integer, BlockState> integerToBlockMap = new HashMap<Integer, BlockState>( );
+    Map<BlockState, Integer> blockToIntegerMap = new HashMap<BlockState, Integer>( );
 
-    //Lists all the blocks that we have seen, and their count
-    Map<Block, Integer> listOfSeenBlocks = new HashMap<Block, Integer> ( );
+    //Lists all the blocks (As integers) that we have seen, and their count
+    Map<Integer, Integer> listOfSeenBlocks = new HashMap<Integer, Integer> ( );
     int currentIndex = 0;
 
     //Map of Integer ID to A list of length 6 with each element being the adjacencies found at that direction
@@ -61,6 +63,8 @@ public class WaveDriver {
     5 - Back
     */
     Map<Integer, Vector<Vector<Integer>> > adj = new HashMap<Integer, Vector<Vector<Integer>>>();
+    Map<BlockPos, Vector<Integer>> collapseMap = new HashMap<BlockPos, Vector<Integer>>();
+    Map<BlockPos, Vector<Integer>> backupMap = new HashMap<>(collapseMap); //Backup map
 
     public WaveDriver(){
         instance = this;
@@ -105,9 +109,9 @@ public class WaveDriver {
         }
 
         //Reset all the nonsense
-        integerToBlockMap = new HashMap<Integer, Block>( );
-        blockToIntegerMap = new HashMap<Block, Integer>( );
-        listOfSeenBlocks = new HashMap<Block, Integer> ( );
+        integerToBlockMap = new HashMap<Integer, BlockState>( );
+        blockToIntegerMap = new HashMap<BlockState, Integer>( );
+        listOfSeenBlocks = new HashMap<Integer, Integer> ( );
         adj = new HashMap<Integer, Vector<Vector<Integer>>>();
         currentIndex = 0;
 
@@ -138,8 +142,102 @@ public class WaveDriver {
             print("Failed to get world correctly");
             return -3;
         }
+
+        Vector<Integer> t = new Vector<Integer>(listOfSeenBlocks.keySet()); //Makes a list of all the integers of seen blocks
+        //Setup The Beginning Collapse Map
+       
+        int xDir = runPos1.getX() < runPos2.getX() ? 1 : -1;
+        int yDir = runPos1.getY() < runPos2.getY() ? 1 : -1;
+        int zDir = runPos1.getZ() < runPos2.getZ() ? 1 : -1;
+
+        for(int x = runPos1.getX(); x != runPos2.getX() + xDir; x = x + xDir){
+            for(int y = runPos1.getY(); y != runPos2.getY() + yDir; y = y + yDir){
+                for(int z = runPos1.getZ(); z != runPos2.getZ() + zDir; z = z + zDir){
+                    collapseMap.put(new BlockPos(x, y, z), t); //Adds all the default adjacencies to the nodes
+                }
+            }
+        }
+
         
+        backupMap = new HashMap<>(collapseMap);
+        //System.out.println(collapseMap.size());
+
+        //At this point we have read everything in, so now we just need to modify the values at each point
+        List<BlockPos> keysAsArray = new ArrayList<BlockPos>(collapseMap.keySet());
+        Random r = new Random();
+        BlockPos firstPos = keysAsArray.get(r.nextInt(keysAsArray.size()));
+
+        //Select the first node
+        collapseNode(firstPos);
+        changeSurrounding(firstPos);
+
+        int itr = 125;
+        boolean done = false;
+        while(!done && itr > 0){
+            itr--;
+
+            //Find lowest entropy to collapse
+            BlockPos current = findLeastEntropy();
+            //Something here doesn't work, I don't think that finding least entropy works the way that it is supposed to
+            //Collapse it
+            collapseNode(current);
+            
+            
+            //Change the surrounding nodes
+            changeSurrounding(current);
+        }
+        System.out.println(collapsed.size());
+
         return 1;
+    }
+
+    Set<BlockPos> collapsed = new HashSet<BlockPos>();
+    private BlockPos findLeastEntropy(){
+        
+        Iterator<BlockPos> iter = collapseMap.keySet().iterator();
+        BlockPos ret = iter.next();
+        while(iter.hasNext()){
+            if(collapsed.contains(ret)){ //only finds things that we have not seen before
+                ret = iter.next();
+            } else {
+                BlockPos t = iter.next();
+                //TODO P sure size returns the largest the vector has ever been and doesn't get the number of elements
+                if(collapseMap.get(ret).size() > collapseMap.get(t).size()){
+                    ret = t;
+                }
+            }
+        }
+        
+        return ret;
+    }
+
+    private void changeSurrounding(BlockPos current){
+        world.setBlockState(current, integerToBlockMap.get(collapseMap.get(current).get(0)));
+    }
+
+    private void collapseNode(BlockPos block){
+
+        //Get adj's from that current block
+        Vector<Integer> potential = collapseMap.get(block);
+
+        //Go find their weights
+        int sum = 0;
+        for(int i = 0; i < potential.size(); i++){
+            sum += potential.get(i);
+        }
+
+        int idx = 0;
+        for (double r = Math.random() * sum; idx < potential.size() - 1; ++idx) {
+            r -= potential.get(idx);
+            if (r <= 0.0) break;
+        }
+        int myRandomItem = potential.get(idx);
+        Vector<Integer> t = new Vector<Integer>();
+        t.add(myRandomItem);
+        collapsed.add(block);
+
+        //Pick one
+        collapseMap.put(block, t);
     }
 
     //Builds Adjacency matrix and setups block to int conversion
@@ -157,12 +255,12 @@ public class WaveDriver {
             for(int y = pos1.getY(); y != pos2.getY() + yDir; y = y + yDir){
                 for(int z = pos1.getZ(); z != pos2.getZ() + zDir; z = z + zDir){
                     BlockPos thisPos = new BlockPos(x, y, z);
-                    Block b = world.getBlockState(thisPos).getBlock();
+                    BlockState b = world.getBlockState(thisPos);
                     //If the block hasn't been seen yet, then we will add it to the list and increment our int
-                    if(!listOfSeenBlocks.containsKey(b)){
+                    if(!blockToIntegerMap.containsKey(b)){
                         integerToBlockMap.put(currentIndex, b);
                         blockToIntegerMap.put(b, currentIndex);
-                        listOfSeenBlocks.put(b, 1);
+                        listOfSeenBlocks.put(currentIndex, 1);
 
                         Vector<Vector<Integer>> newVec = new Vector<Vector<Integer>>();
                         //Disgusting way of adding the new vectors
@@ -177,7 +275,8 @@ public class WaveDriver {
                         currentIndex++;
                     } else {
                         //Add 1 to the block in listOfSeenBlock
-                        listOfSeenBlocks.put(b, listOfSeenBlocks.get(b) + 1);
+                        int thisBlock = blockToIntegerMap.get(b);
+                        listOfSeenBlocks.put(thisBlock, listOfSeenBlocks.get(thisBlock) + 1);
                     }
 
                     //I've now added to the list the block, time to check it's adjacencies
@@ -188,7 +287,7 @@ public class WaveDriver {
             }
         }
 
-        System.out.println(adj);
+        //System.out.println(adj);
         //System.out.println(integerToBlockMap);
         //System.out.println(listOfSeenBlocks);
 
@@ -196,46 +295,46 @@ public class WaveDriver {
     }
 
     //Add's all the adjacencies for a block
-    private void addAdjacencies(Block b, BlockPos p){
+    private void addAdjacencies(BlockState b, BlockPos p){
         //Up
         BlockPos newPos = p.up();
-        Block newBlock = world.getBlockState(newPos).getBlock();
+        BlockState newBlock = world.getBlockState(newPos);
         testSymbolSeenBefore(newBlock);
         addSingleAdjacency(b, newBlock, 0);
 
         //Down
         newPos = p.down();
-        newBlock = world.getBlockState(newPos).getBlock();
+        newBlock = world.getBlockState(newPos);
         testSymbolSeenBefore(newBlock);
         addSingleAdjacency(b, newBlock, 1);
 
         //Left
         newPos = p.west();
-        newBlock = world.getBlockState(newPos).getBlock();
+        newBlock = world.getBlockState(newPos);
         testSymbolSeenBefore(newBlock);
         addSingleAdjacency(b, newBlock, 2);
 
         //Right
         newPos = p.east();
-        newBlock = world.getBlockState(newPos).getBlock();
+        newBlock = world.getBlockState(newPos);
         testSymbolSeenBefore(newBlock);
         addSingleAdjacency(b, newBlock, 3);
 
         //Forward
         newPos = p.north();
-        newBlock = world.getBlockState(newPos).getBlock();
+        newBlock = world.getBlockState(newPos);
         testSymbolSeenBefore(newBlock);
         addSingleAdjacency(b, newBlock, 4);
 
         //Back
         newPos = p.south();
-        newBlock = world.getBlockState(newPos).getBlock();
+        newBlock = world.getBlockState(newPos);
         testSymbolSeenBefore(newBlock);
         addSingleAdjacency(b, newBlock, 5);
     }
 
     //Adds the adjacencies in the direction
-    private void addSingleAdjacency(Block b, Block newBlock, int direction){
+    private void addSingleAdjacency(BlockState b, BlockState newBlock, int direction){
         Vector<Integer> prevAdj = adj.get(blockToIntegerMap.get(b)).get(direction);
         prevAdj.add(blockToIntegerMap.get(newBlock));
         //Scuffed way of removing duplicates
@@ -247,11 +346,11 @@ public class WaveDriver {
     }
 
     //Tests a single block if it's been seen before, and if it has not then we add all the appropriate stuff
-    private void testSymbolSeenBefore(Block b){
-        if(!listOfSeenBlocks.containsKey(b)){ //Test if the block has been seen before, if it hasn't we need to add it
+    private void testSymbolSeenBefore(BlockState b){
+        if(!blockToIntegerMap.containsKey(b)){ //Test if the block has been seen before, if it hasn't we need to add it
             integerToBlockMap.put(++currentIndex, b);
             blockToIntegerMap.put(b, currentIndex);
-            listOfSeenBlocks.put(b, 0); 
+            listOfSeenBlocks.put(currentIndex, 0); 
 
             Vector<Vector<Integer>> newVec = new Vector<Vector<Integer>>();
             //Disgusting way of adding the new vectors
@@ -265,6 +364,5 @@ public class WaveDriver {
             adj.put(currentIndex, newVec);    
         }
     }
-
 
 }
