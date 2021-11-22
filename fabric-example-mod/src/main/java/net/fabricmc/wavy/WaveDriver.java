@@ -184,17 +184,28 @@ public class WaveDriver {
 
             //Find lowest entropy to collapse
             BlockPos current = findLeastEntropy();
-            System.out.println("Current " + current);
+            //System.out.println("Current " + current);
             //Something here doesn't work, I don't think that finding least entropy works the way that it is supposed to
             //Collapse it
             collapseNode(current);
-            System.out.println(collapsed.size());
             
-            
+
             //Change the surrounding nodes
             changeSurrounding(current);
+            
         }
+
+        GenerateWorld();
         return 1;
+    }
+
+    private void GenerateWorld(){
+        Iterator<BlockPos> iter = collapsed.iterator();
+        System.out.println(collapsed);
+        while(iter.hasNext()){
+            BlockPos current = iter.next();
+            world.setBlockState(current, integerToBlockMap.get(collapseMap.get(current).get(0)));
+        }
     }
 
     Set<BlockPos> collapsed = new HashSet<BlockPos>();
@@ -213,8 +224,41 @@ public class WaveDriver {
         return ret;
     }
 
+    private void handleSingleSurroundingChange(BlockPos target, BlockPos current, int direction){
+        Vector<Integer> thisAdj = adj.get(collapseMap.get(current).get(0)).get(direction); //Gets the current integer of the block that is at curent and then goes and finds that in adj
+        Vector<Integer> newAdj = new Vector<Integer>();
+        if(collapseMap.containsKey(target) && !collapsed.contains(target)){ //Test if the position exists on the map AND if we have no seen the block before
+            Vector<Integer> targetAdj = collapseMap.get(target);
+            for(int i = 0; i < targetAdj.size(); i++){
+                if(thisAdj.contains(targetAdj.get(i))){
+                    newAdj.add(targetAdj.get(i));
+                }
+            }
+            collapseMap.put(target, newAdj);
+        }
+    }
+
     private void changeSurrounding(BlockPos current){
-        world.setBlockState(current, integerToBlockMap.get(collapseMap.get(current).get(0)));
+
+        //Wrap current + direction
+        //Change up 0
+        handleSingleSurroundingChange(current.up(), current, 0);
+
+        //Change DOwn 1
+        handleSingleSurroundingChange(current.down(), current, 1);
+
+        //CHange West 2
+        handleSingleSurroundingChange(current.west(), current, 2);
+
+        //Change east
+        handleSingleSurroundingChange(current.east(), current, 3);
+
+        //Change north
+        handleSingleSurroundingChange(current.north(), current, 4);
+        
+        //change south
+        handleSingleSurroundingChange(current.south(), current, 5);
+        System.out.println(collapseMap);
     }
 
     private void collapseNode(BlockPos block){
@@ -235,10 +279,9 @@ public class WaveDriver {
         }
         int myRandomItem = potential.get(idx);
         Vector<Integer> t = new Vector<Integer>();
-        System.out.println("Adding " + integerToBlockMap.get(myRandomItem) + " as a block");
         t.add(myRandomItem);
         collapsed.add(block);
-
+        //System.out.println("Adding " + t + " to collapsemap at " + block);
         //Pick one
         collapseMap.put(block, t);
     }
@@ -299,6 +342,9 @@ public class WaveDriver {
 
     //Add's all the adjacencies for a block
     private void addAdjacencies(BlockState b, BlockPos p){
+
+        //Wrap p + direction
+        
         //Up
         BlockPos newPos = p.up();
         BlockState newBlock = world.getBlockState(newPos);
