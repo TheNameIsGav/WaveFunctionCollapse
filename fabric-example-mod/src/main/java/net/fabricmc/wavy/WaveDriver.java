@@ -122,11 +122,16 @@ public class WaveDriver {
             return j;
         }
 
+        //System.out.println(blockToIntegerMap);
+        //System.out.println(listOfSeenBlocks);
+
         hasRunFirstStep = true;
         return 1;
     }
 
     public int secondStepWFC(){
+        collapseMap = new HashMap<BlockPos, Vector<Integer>>();
+        collapsed = new HashSet<BlockPos>();
 
         if(!hasRunFirstStep){
             print("It appears that you have not loaded up adjacencies");
@@ -144,6 +149,7 @@ public class WaveDriver {
         }
 
         Vector<Integer> t = new Vector<Integer>(listOfSeenBlocks.keySet()); //Makes a list of all the integers of seen blocks
+        //System.out.println(t);
         //Setup The Beginning Collapse Map
        
         int xDir = runPos1.getX() < runPos2.getX() ? 1 : -1;
@@ -171,39 +177,35 @@ public class WaveDriver {
         collapseNode(firstPos);
         changeSurrounding(firstPos);
 
-        int itr = 125;
+        int itr = 8;
         boolean done = false;
         while(!done && itr > 0){
             itr--;
 
             //Find lowest entropy to collapse
             BlockPos current = findLeastEntropy();
+            System.out.println("Current " + current);
             //Something here doesn't work, I don't think that finding least entropy works the way that it is supposed to
             //Collapse it
             collapseNode(current);
+            System.out.println(collapsed.size());
             
             
             //Change the surrounding nodes
             changeSurrounding(current);
         }
-        System.out.println(collapsed.size());
-
         return 1;
     }
 
     Set<BlockPos> collapsed = new HashSet<BlockPos>();
     private BlockPos findLeastEntropy(){
-        
-        Iterator<BlockPos> iter = collapseMap.keySet().iterator();
-        BlockPos ret = iter.next();
-        while(iter.hasNext()){
-            if(collapsed.contains(ret)){ //only finds things that we have not seen before
-                ret = iter.next();
-            } else {
-                BlockPos t = iter.next();
-                //TODO P sure size returns the largest the vector has ever been and doesn't get the number of elements
-                if(collapseMap.get(ret).size() > collapseMap.get(t).size()){
-                    ret = t;
+        BlockPos[] blockArr = new BlockPos[collapseMap.size()];
+        collapseMap.keySet().toArray(blockArr);
+        BlockPos ret = blockArr[0];
+        for(int i = 0; i < blockArr.length; i++){
+            if(!collapsed.contains(blockArr[i])){ //If we haven't collapsed this node before
+                if(collapseMap.get(blockArr[i]).size() <= collapseMap.get(ret).size()){ //If our size is less
+                    ret = blockArr[i];
                 }
             }
         }
@@ -233,6 +235,7 @@ public class WaveDriver {
         }
         int myRandomItem = potential.get(idx);
         Vector<Integer> t = new Vector<Integer>();
+        System.out.println("Adding " + integerToBlockMap.get(myRandomItem) + " as a block");
         t.add(myRandomItem);
         collapsed.add(block);
 
