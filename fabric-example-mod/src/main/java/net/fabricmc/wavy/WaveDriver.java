@@ -3,7 +3,6 @@ package net.fabricmc.wavy;
 
 import java.util.*;
 
-import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.network.MessageType;
@@ -168,17 +167,11 @@ public class WaveDriver {
         backupMap = new HashMap<>(collapseMap);
         //System.out.println(collapseMap.size());
 
-        //At this point we have read everything in, so now we just need to modify the values at each point
-        List<BlockPos> keysAsArray = new ArrayList<BlockPos>(collapseMap.keySet());
-        Random r = new Random();
-        BlockPos firstPos = keysAsArray.get(r.nextInt(keysAsArray.size()));
+        CollapseCorners();
 
-        //Select the first node
-        collapseNode(firstPos);
-        changeSurrounding(firstPos);
-
-        int itr = 8;
+        int itr = 500;
         boolean done = false;
+        /*
         while(!done && itr > 0){
             itr--;
 
@@ -189,14 +182,42 @@ public class WaveDriver {
             //Collapse it
             collapseNode(current);
             
-
             //Change the surrounding nodes
             changeSurrounding(current);
+
+            if(collapsed.size() == collapseMap.keySet().size()){
+                done = true;
+            }
             
-        }
+        }*/
 
         GenerateWorld();
         return 1;
+    }
+
+    private void CollapseCorners(){
+        //Collapse all 8 corners
+        int xDif = runPos1.getX() - runPos2.getX();
+        int yDif = runPos1.getY() - runPos2.getY();
+        int zDif = runPos1.getZ() - runPos2.getZ();
+
+        Vector<BlockPos> r = new Vector<BlockPos>();
+
+        r.add(new BlockPos(runPos1.getX() - xDif, runPos1.getY(), runPos1.getZ()));
+        r.add(new BlockPos(runPos1.getX(), runPos1.getY() - yDif, runPos1.getZ()));
+        r.add(new BlockPos(runPos1.getX(), runPos1.getY(), runPos1.getZ() - zDif));
+
+        r.add(new BlockPos(runPos2.getX() + xDif, runPos2.getY(), runPos2.getZ()));
+        r.add(new BlockPos(runPos2.getX(), runPos2.getY() + yDif, runPos2.getZ()));
+        r.add(new BlockPos(runPos2.getX(), runPos2.getY(), runPos2.getZ() + zDif));
+
+        r.add(runPos1);
+        r.add(runPos2);
+
+        for(BlockPos a : r){
+            collapseNode(a);
+            changeSurrounding(a);
+        }
     }
 
     private void GenerateWorld(){
@@ -281,7 +302,7 @@ public class WaveDriver {
         Vector<Integer> t = new Vector<Integer>();
         t.add(myRandomItem);
         collapsed.add(block);
-        //System.out.println("Adding " + t + " to collapsemap at " + block);
+        System.out.println("Adding " + myRandomItem + " at " + block);
         //Pick one
         collapseMap.put(block, t);
     }
