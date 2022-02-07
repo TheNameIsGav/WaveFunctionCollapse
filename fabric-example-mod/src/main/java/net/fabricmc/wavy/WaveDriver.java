@@ -171,7 +171,7 @@ public class WaveDriver {
 
         int itr = 500;
         boolean done = false;
-        /*
+        
         while(!done && itr > 0){
             itr--;
 
@@ -189,7 +189,7 @@ public class WaveDriver {
                 done = true;
             }
             
-        }*/
+        }
 
         GenerateWorld();
         return 1;
