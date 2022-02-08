@@ -3,6 +3,7 @@ package net.fabricmc.wavy;
 
 import java.util.*;
 
+import net.minecraft.block.AirBlock;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.network.MessageType;
@@ -83,12 +84,6 @@ public class WaveDriver {
         }
     }
 
-    public boolean saveMatrix(){
-
-        
-        return true;
-    }
-
     boolean hasRunFirstStep = false;
     public int firstStepWFC(){
 
@@ -127,8 +122,8 @@ public class WaveDriver {
             return j;
         }
 
-        //System.out.println(blockToIntegerMap);
-        //System.out.println(listOfSeenBlocks);
+        System.out.println("Block to integer map \n" + blockToIntegerMap);
+        System.out.println("List of seen blocks \n" + listOfSeenBlocks);
 
         hasRunFirstStep = true;
         return 1;
@@ -171,15 +166,16 @@ public class WaveDriver {
 
         
         backupMap = new HashMap<>(collapseMap);
-        //System.out.println(collapseMap.size());
-
+        
         CollapseCorners();
+        System.out.println(collapseMap);
 
         int itr = 500;
         boolean done = false;
         
         while(!done && itr > 0){
             itr--;
+            
 
             //Find lowest entropy to collapse
             BlockPos current = findLeastEntropy();
@@ -187,7 +183,7 @@ public class WaveDriver {
             //Something here doesn't work, I don't think that finding least entropy works the way that it is supposed to
             //Collapse it
             collapseNode(current);
-            
+            System.out.println("Ieration: " + itr);
             //Change the surrounding nodes
             changeSurrounding(current);
 
@@ -227,11 +223,16 @@ public class WaveDriver {
     }
 
     private void GenerateWorld(){
+        System.out.println("Made into Generate world");
         Iterator<BlockPos> iter = collapsed.iterator();
-        System.out.println(collapsed);
+        
         while(iter.hasNext()){
             BlockPos current = iter.next();
-            world.setBlockState(current, integerToBlockMap.get(collapseMap.get(current).get(0)));
+            if(collapseMap.get(current).get(0) == null){ //Trying to remove errors from generating nothing just for now TODO needs to be removed when wrapping gets added
+                //world.setBlockState(current, AirBlock.getStateFromRawId(0));
+            } else {
+                world.setBlockState(current, integerToBlockMap.get(collapseMap.get(current).get(0)));
+            }
         }
     }
 
@@ -285,13 +286,20 @@ public class WaveDriver {
         
         //change south
         handleSingleSurroundingChange(current.south(), current, 5);
-        System.out.println(collapseMap);
+        //System.out.println(collapseMap);
     }
 
     private void collapseNode(BlockPos block){
 
         //Get adj's from that current block
         Vector<Integer> potential = collapseMap.get(block);
+
+        if(potential.size() == 0){
+            Vector<Integer> x = new Vector<Integer>();
+            x.add(-1);
+            collapseMap.put(block, x);
+            return;
+        }
 
         //Go find their weights
         int sum = 0;
@@ -330,7 +338,7 @@ public class WaveDriver {
                     BlockPos thisPos = new BlockPos(x, y, z);
                     BlockState b = world.getBlockState(thisPos);
                     //If the block hasn't been seen yet, then we will add it to the list and increment our int
-                    if(!blockToIntegerMap.containsKey(b)){
+                    if(!blockToIntegerMap.containsKey(b) && !b.isAir()){
                         integerToBlockMap.put(currentIndex, b);
                         blockToIntegerMap.put(b, currentIndex);
                         listOfSeenBlocks.put(currentIndex, 1);
@@ -348,8 +356,10 @@ public class WaveDriver {
                         currentIndex++;
                     } else {
                         //Add 1 to the block in listOfSeenBlock
-                        int thisBlock = blockToIntegerMap.get(b);
-                        listOfSeenBlocks.put(thisBlock, listOfSeenBlocks.get(thisBlock) + 1);
+                        if(!b.isAir()){
+                            int thisBlock = blockToIntegerMap.get(b);
+                            listOfSeenBlocks.put(thisBlock, listOfSeenBlocks.get(thisBlock) + 1);
+                        }
                     }
 
                     //I've now added to the list the block, time to check it's adjacencies
@@ -411,19 +421,22 @@ public class WaveDriver {
 
     //Adds the adjacencies in the direction
     private void addSingleAdjacency(BlockState b, BlockState newBlock, int direction){
-        Vector<Integer> prevAdj = adj.get(blockToIntegerMap.get(b)).get(direction);
-        prevAdj.add(blockToIntegerMap.get(newBlock));
-        //Scuffed way of removing duplicates
-        LinkedHashSet<Integer> hashSet = new LinkedHashSet<Integer> (prevAdj);
-        prevAdj.clear();
-        prevAdj.addAll(hashSet);
+        //Tests to see if we should be adding air, and don't
+        if(!b.isAir()){
+            Vector<Integer> prevAdj = adj.get(blockToIntegerMap.get(b)).get(direction);
+            prevAdj.add(blockToIntegerMap.get(newBlock));
+            //Scuffed way of removing duplicates
+            LinkedHashSet<Integer> hashSet = new LinkedHashSet<Integer> (prevAdj);
+            prevAdj.clear();
+            prevAdj.addAll(hashSet);
 
-        adj.get(blockToIntegerMap.get(b)).set(direction, prevAdj);
+            adj.get(blockToIntegerMap.get(b)).set(direction, prevAdj);
+        }
     }
 
     //Tests a single block if it's been seen before, and if it has not then we add all the appropriate stuff
     private void testSymbolSeenBefore(BlockState b){
-        if(!blockToIntegerMap.containsKey(b)){ //Test if the block has been seen before, if it hasn't we need to add it
+        if(!blockToIntegerMap.containsKey(b) && !b.isAir()){ //Test if the block has been seen before, if it hasn't we need to add it
             integerToBlockMap.put(++currentIndex, b);
             blockToIntegerMap.put(b, currentIndex);
             listOfSeenBlocks.put(currentIndex, 0); 
