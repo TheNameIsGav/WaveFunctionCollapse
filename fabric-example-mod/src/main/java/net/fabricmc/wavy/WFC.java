@@ -3,6 +3,7 @@ package net.fabricmc.wavy;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v1.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.item.v1.FabricItemSettings;
+import net.fabricmc.wavy.SimpleConfig.ConfigRequest;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.network.MessageType;
@@ -50,6 +51,22 @@ public class WFC implements ModInitializer {
 		});
 
 		CommandRegistrationCallback.EVENT.register((dispatcher, decdicated) -> {
+			dispatcher.register(CommandManager.literal("saveToFile").executes(context -> {
+
+				
+				return 1;
+			}));
+		});
+
+		CommandRegistrationCallback.EVENT.register((dispatcher, decdicated) -> {
+			dispatcher.register(CommandManager.literal("loadFromFile").executes(context -> {
+
+				
+				return 1;
+			}));
+		});
+
+		CommandRegistrationCallback.EVENT.register((dispatcher, decdicated) -> {
 			dispatcher.register(CommandManager.literal("runWFC").executes(context-> {
 				MinecraftClient mc = MinecraftClient.getInstance();
 				waveDriver.Mc(mc);
@@ -68,6 +85,10 @@ public class WFC implements ModInitializer {
 		});
 
 		LOGGER.info("Hello Fabric world!");
+
+
+		//Initialize Config File using https://github.com/magistermaks/fabric-simplelibs/tree/master/simple-config Simple Configs
+		//ConfigRequest CONFIG = SimpleConfig.of( "WFCconfig" ).provider( this::provider ).request();
 	}
 
 }

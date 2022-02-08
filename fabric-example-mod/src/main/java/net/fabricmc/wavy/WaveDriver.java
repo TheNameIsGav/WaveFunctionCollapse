@@ -45,11 +45,11 @@ public class WaveDriver {
     //private Vector3d wrap = new Vector3d(1, 0, 1);
 
     //Used to convert from an intger to a block. Used when initially reading through the input
-    Map<Integer, BlockState> integerToBlockMap = new HashMap<Integer, BlockState>( );
+    Map<Integer, BlockState> integerToBlockMap = new HashMap<Integer, BlockState>( ); //Needed in Save
     Map<BlockState, Integer> blockToIntegerMap = new HashMap<BlockState, Integer>( );
 
     //Lists all the blocks (As integers) that we have seen, and their count
-    Map<Integer, Integer> listOfSeenBlocks = new HashMap<Integer, Integer> ( );
+    Map<Integer, Integer> listOfSeenBlocks = new HashMap<Integer, Integer> ( ); //Needed in Save
     int currentIndex = 0;
 
     //Map of Integer ID to A list of length 6 with each element being the adjacencies found at that direction
@@ -61,7 +61,7 @@ public class WaveDriver {
     4 - Forward
     5 - Back
     */
-    Map<Integer, Vector<Vector<Integer>> > adj = new HashMap<Integer, Vector<Vector<Integer>>>();
+    Map<Integer, Vector<Vector<Integer>> > adj = new HashMap<Integer, Vector<Vector<Integer>>>(); //Needed in Save
     Map<BlockPos, Vector<Integer>> collapseMap = new HashMap<BlockPos, Vector<Integer>>();
     Map<BlockPos, Vector<Integer>> backupMap = new HashMap<>(collapseMap); //Backup map
 
@@ -81,6 +81,12 @@ public class WaveDriver {
         } else {
             System.out.println("Somehow Minecraft Client was null");
         }
+    }
+
+    public boolean saveMatrix(){
+
+        
+        return true;
     }
 
     boolean hasRunFirstStep = false;
