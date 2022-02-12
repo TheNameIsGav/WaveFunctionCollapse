@@ -338,7 +338,7 @@ public class WaveDriver {
                     BlockPos thisPos = new BlockPos(x, y, z);
                     BlockState b = world.getBlockState(thisPos);
                     //If the block hasn't been seen yet, then we will add it to the list and increment our int
-                    if(!blockToIntegerMap.containsKey(b) && !b.isAir()){
+                    if(!blockToIntegerMap.containsKey(b)){
                         integerToBlockMap.put(currentIndex, b);
                         blockToIntegerMap.put(b, currentIndex);
                         listOfSeenBlocks.put(currentIndex, 1);
@@ -356,10 +356,10 @@ public class WaveDriver {
                         currentIndex++;
                     } else {
                         //Add 1 to the block in listOfSeenBlock
-                        if(!b.isAir()){
+                        
                             int thisBlock = blockToIntegerMap.get(b);
                             listOfSeenBlocks.put(thisBlock, listOfSeenBlocks.get(thisBlock) + 1);
-                        }
+                        
                     }
 
                     //I've now added to the list the block, time to check it's adjacencies
@@ -421,8 +421,6 @@ public class WaveDriver {
 
     //Adds the adjacencies in the direction
     private void addSingleAdjacency(BlockState b, BlockState newBlock, int direction){
-        //Tests to see if we should be adding air, and don't
-        if(!b.isAir()){
             Vector<Integer> prevAdj = adj.get(blockToIntegerMap.get(b)).get(direction);
             prevAdj.add(blockToIntegerMap.get(newBlock));
             //Scuffed way of removing duplicates
@@ -431,12 +429,11 @@ public class WaveDriver {
             prevAdj.addAll(hashSet);
 
             adj.get(blockToIntegerMap.get(b)).set(direction, prevAdj);
-        }
     }
 
     //Tests a single block if it's been seen before, and if it has not then we add all the appropriate stuff
     private void testSymbolSeenBefore(BlockState b){
-        if(!blockToIntegerMap.containsKey(b) && !b.isAir()){ //Test if the block has been seen before, if it hasn't we need to add it
+        if(!blockToIntegerMap.containsKey(b)){ //Test if the block has been seen before, if it hasn't we need to add it
             integerToBlockMap.put(++currentIndex, b);
             blockToIntegerMap.put(b, currentIndex);
             listOfSeenBlocks.put(currentIndex, 0); 
