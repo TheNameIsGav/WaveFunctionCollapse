@@ -3,7 +3,6 @@ package net.fabricmc.wavy;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v1.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.item.v1.FabricItemSettings;
-import net.fabricmc.wavy.SimpleConfig.ConfigRequest;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.network.MessageType;
@@ -11,6 +10,8 @@ import net.minecraft.server.command.CommandManager;
 import net.minecraft.text.LiteralText;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.registry.Registry;
+
+import java.io.IOException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -38,7 +39,7 @@ public class WFC implements ModInitializer {
 
 		//Command to load in the adjacencies for WFC
 		CommandRegistrationCallback.EVENT.register((dispatcher, decdicated) -> {
-			dispatcher.register(CommandManager.literal("loadWFC").executes(context-> {
+			dispatcher.register(CommandManager.literal("saveWFC").executes(context-> {
 				MinecraftClient mc = MinecraftClient.getInstance();
 
 				//Setup the initial requirements for the Wave Driving function
@@ -52,7 +53,14 @@ public class WFC implements ModInitializer {
 
 		CommandRegistrationCallback.EVENT.register((dispatcher, decdicated) -> {
 			dispatcher.register(CommandManager.literal("saveToFile").executes(context -> {
-
+				MinecraftClient mc = MinecraftClient.getInstance();
+				try {
+					waveDriver.SaveFile();
+					mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("Successfully saved WFC Matrix to file."), mc.player.getUuid());
+				} catch (IOException e) {
+					mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("Failed to save WFC Matrix to file."), mc.player.getUuid());
+					e.printStackTrace();
+				}
 				
 				return 1;
 			}));
@@ -60,8 +68,13 @@ public class WFC implements ModInitializer {
 
 		CommandRegistrationCallback.EVENT.register((dispatcher, decdicated) -> {
 			dispatcher.register(CommandManager.literal("loadFromFile").executes(context -> {
-
-				
+				MinecraftClient mc = MinecraftClient.getInstance();
+				boolean ret = waveDriver.LoadFile();
+				if(ret){
+					mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("Successfully loaded WFC Matrix from file."), mc.player.getUuid());
+				} else {
+					mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("Failed to load WFC Matrix from file."), mc.player.getUuid());
+				}
 				return 1;
 			}));
 		});

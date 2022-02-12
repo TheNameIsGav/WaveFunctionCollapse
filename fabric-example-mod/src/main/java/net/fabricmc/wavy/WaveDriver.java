@@ -1,14 +1,21 @@
 package net.fabricmc.wavy;
 
 
+import java.io.File;
+import java.io.IOException;
+import java.io.Serializable;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 
-import net.minecraft.block.AirBlock;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.util.math.Vector3d;
 import net.minecraft.network.MessageType;
 import net.minecraft.text.LiteralText;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 
 
@@ -43,14 +50,15 @@ public class WaveDriver {
     public int Constraint(){ return constraint; }
 
     //represents the degrees that we should wrap over (0 for false, 1 for true)
-    //private Vector3d wrap = new Vector3d(1, 0, 1);
+    private Vector3d WRAP = new Vector3d(1, 0, 1);
+    boolean SHOULDWRAP = true;
 
     //Used to convert from an intger to a block. Used when initially reading through the input
-    Map<Integer, BlockState> integerToBlockMap = new HashMap<Integer, BlockState>( ); //Needed in Save
-    Map<BlockState, Integer> blockToIntegerMap = new HashMap<BlockState, Integer>( );
+    HashMap<Integer, BlockState> integerToBlockMap = new HashMap<Integer, BlockState>( ); //Needed in Save
+    HashMap<BlockState, Integer> blockToIntegerMap = new HashMap<BlockState, Integer>( ); //Needed in Save
 
     //Lists all the blocks (As integers) that we have seen, and their count
-    Map<Integer, Integer> listOfSeenBlocks = new HashMap<Integer, Integer> ( ); //Needed in Save
+    HashMap<Integer, Integer> listOfSeenBlocks = new HashMap<Integer, Integer> ( ); //Needed in Save
     int currentIndex = 0;
 
     //Map of Integer ID to A list of length 6 with each element being the adjacencies found at that direction
@@ -62,9 +70,68 @@ public class WaveDriver {
     4 - Forward
     5 - Back
     */
-    Map<Integer, Vector<Vector<Integer>> > adj = new HashMap<Integer, Vector<Vector<Integer>>>(); //Needed in Save
-    Map<BlockPos, Vector<Integer>> collapseMap = new HashMap<BlockPos, Vector<Integer>>();
-    Map<BlockPos, Vector<Integer>> backupMap = new HashMap<>(collapseMap); //Backup map
+    HashMap<Integer, Vector<Vector<Integer>> > adj = new HashMap<Integer, Vector<Vector<Integer>>>(); //Needed in Save
+    HashMap<BlockPos, Vector<Integer>> collapseMap = new HashMap<BlockPos, Vector<Integer>>();
+    HashMap<BlockPos, Vector<Integer>> backupMap = new HashMap<>(collapseMap); //Backup map
+
+
+    //Saving Information
+    String filename = "WaveMatrix";
+    //private final HashMap<String, String> config = new HashMap<>();
+    class SerializableBlockState implements Serializable{
+
+        String name;
+        String properties;
+        BlockPos position;
+        //TODO Implement a custom serializer that transforms BlockStates to a string with properties in JSON
+        public SerializableBlockState(BlockState bs){
+            name = bs.toString();
+            properties = bs.getProperties().toString();
+        }
+    }
+
+    public boolean SaveFile() throws IOException{
+        Path path = FabricLoader.getInstance().getConfigDir();
+        File save = path.resolve( filename + ".properties" ).toFile();
+
+        // try creating missing files
+        save.getParentFile().mkdirs();
+        try {
+            Files.createFile( save.toPath() );
+        } catch (IOException e) {
+            System.out.println("Did not create new file");
+        }
+        
+        BlockState test = world.getBlockState(new BlockPos(new Vec3d(0, 1, 0)));
+        //System.out.println(test.hashCode());
+        System.out.println(test.hashCode());
+        
+
+        return true;
+    }
+
+    public boolean LoadFile(){
+
+        /*private void loadConfig() throws IOException {
+        Scanner reader = new Scanner( request.file );
+        for( int line = 1; reader.hasNextLine(); line ++ ) {
+            parseConfigEntry( reader.nextLine(), line );
+        }
+        reader.close(); //Gabriel change 
+    }
+
+    private void parseConfigEntry( String entry, int line ) {
+        if( !entry.isEmpty() && !entry.startsWith( "#" ) ) {
+            String[] parts = entry.split("=", 2);
+            if( parts.length == 2 ) {
+                config.put( parts[0], parts[1] );
+            }else{
+                throw new RuntimeException("Syntax error in config file on line " + line + "!");
+            }
+        }
+    } */
+        return true;
+    }
 
     public WaveDriver(){
         instance = this;
@@ -185,7 +252,7 @@ public class WaveDriver {
             collapseNode(current);
             System.out.println("Ieration: " + itr);
             //Change the surrounding nodes
-            changeSurrounding(current);
+            changeSurrounding(current, SHOULDWRAP);
 
             if(collapsed.size() == collapseMap.keySet().size()){
                 done = true;
@@ -218,7 +285,7 @@ public class WaveDriver {
 
         for(BlockPos a : r){
             collapseNode(a);
-            changeSurrounding(a);
+            changeSurrounding(a, false);
         }
     }
 
@@ -252,10 +319,16 @@ public class WaveDriver {
         return ret;
     }
 
-    private void handleSingleSurroundingChange(BlockPos target, BlockPos current, int direction){
+    private void handleSingleSurroundingChange(BlockPos target, BlockPos current, int direction, boolean shouldWrap){
         Vector<Integer> thisAdj = adj.get(collapseMap.get(current).get(0)).get(direction); //Gets the current integer of the block that is at curent and then goes and finds that in adj
         Vector<Integer> newAdj = new Vector<Integer>();
-        if(collapseMap.containsKey(target) && !collapsed.contains(target)){ //Test if the position exists on the map AND if we have no seen the block before
+
+        //Wrapping
+        if(shouldWrap){
+            target = wrapBlockPos(current);
+        }
+
+        if(collapseMap.containsKey(target) && !collapsed.contains(target)){ //Test if the position exists on the map AND if we have not collapsed the block before
             Vector<Integer> targetAdj = collapseMap.get(target);
             for(int i = 0; i < targetAdj.size(); i++){
                 if(thisAdj.contains(targetAdj.get(i))){
@@ -266,26 +339,75 @@ public class WaveDriver {
         }
     }
 
-    private void changeSurrounding(BlockPos current){
+    private BlockPos wrapBlockPos(BlockPos current) {
+        if(collapseMap.containsKey(current)){
+            return current;
+        } else {
+            int newX = current.getX();
+            int newY = current.getY();
+            int newZ = current.getZ();
+
+            //Test Run Pos 1 = 567, 65, -119
+            //Test Run Pos 2 = 683, 19, 210
+
+            int maxX = runPos1.getX() > runPos2.getX() ? runPos1.getX() : runPos2.getX(); //683
+            int minX = runPos1.getX() < runPos2.getX() ? runPos1.getX() : runPos2.getX(); //567
+
+            int maxY = runPos1.getY() > runPos2.getY() ? runPos1.getY() : runPos2.getY(); //65
+            int minY = runPos1.getY() < runPos2.getY() ? runPos1.getY() : runPos2.getY(); //19
+
+            int maxZ = runPos1.getZ() > runPos2.getZ() ? runPos1.getZ() : runPos2.getZ(); //210
+            int minZ = runPos1.getZ() < runPos2.getZ() ? runPos1.getZ() : runPos2.getZ(); //-119
+
+            if(WRAP.x == 1){
+                if(current.getX() > maxX){
+                    newX = minX;
+                } else if (current.getX() < minX){
+                    newX = maxX;
+                }
+            }
+
+            if(WRAP.y == 1){
+                if(current.getY() > maxY){
+                    newY = minY;
+                } else if (current.getY() < minY){
+                    newY = maxY;
+                }
+            }
+
+            if(WRAP.z == 1){
+                if(current.getZ() > maxZ){
+                    newZ = minZ;
+                } else if (current.getZ() < minZ){
+                    newZ = maxZ;
+                }
+            }
+           
+            return new BlockPos(newX, newY, newZ);
+        }
+        
+    }
+    
+    private void changeSurrounding(BlockPos current, boolean shouldWrap){
 
         //Wrap current + direction
         //Change up 0
-        handleSingleSurroundingChange(current.up(), current, 0);
+        handleSingleSurroundingChange(current.up(), current, 0, shouldWrap);
 
         //Change DOwn 1
-        handleSingleSurroundingChange(current.down(), current, 1);
+        handleSingleSurroundingChange(current.down(), current, 1, shouldWrap);
 
         //CHange West 2
-        handleSingleSurroundingChange(current.west(), current, 2);
+        handleSingleSurroundingChange(current.west(), current, 2, shouldWrap);
 
         //Change east
-        handleSingleSurroundingChange(current.east(), current, 3);
+        handleSingleSurroundingChange(current.east(), current, 3, shouldWrap);
 
         //Change north
-        handleSingleSurroundingChange(current.north(), current, 4);
+        handleSingleSurroundingChange(current.north(), current, 4, shouldWrap);
         
         //change south
-        handleSingleSurroundingChange(current.south(), current, 5);
+        handleSingleSurroundingChange(current.south(), current, 5, shouldWrap);
         //System.out.println(collapseMap);
     }
 
