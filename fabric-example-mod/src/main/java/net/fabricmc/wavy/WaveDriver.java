@@ -8,18 +8,24 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.lang.reflect.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.util.math.Vector3d;
 import net.minecraft.network.MessageType;
+import net.minecraft.state.property.Properties;
 import net.minecraft.text.LiteralText;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.registry.Registry;
 import net.minecraft.world.World;
 
 
@@ -130,11 +136,39 @@ public class WaveDriver {
 
         HashMap<Integer, String> test = (HashMap<Integer, String>) o.readObject();
         
-        System.out.println(test);
+        convertStringToBlockState(test.get(0));
         
         o.close();
        
         return true;
+    }
+
+    public BlockState convertStringToBlockState(String s){
+
+        System.out.println(s);
+        BlockState tester = integerToBlockMap.get(0);
+
+        //world.setBlockState(new BlockPos(0,80,0), Blocks.DISPENSER.getDefaultState().with(Properties.FACING, Direction.DOWN), 3);
+        try {
+
+            Field t = Blocks.class.getField("COBBLESTONE");
+            Block r = (Block) t.get(null);
+            tester = r.getDefaultState();
+            
+        } catch (NoSuchFieldException | SecurityException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (IllegalArgumentException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+        System.out.println(tester + " Here it works");
+
+        return tester;
     }
 
     public WaveDriver(){
