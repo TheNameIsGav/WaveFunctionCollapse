@@ -69,12 +69,14 @@ public class WFC implements ModInitializer {
 		CommandRegistrationCallback.EVENT.register((dispatcher, decdicated) -> {
 			dispatcher.register(CommandManager.literal("loadFromFile").executes(context -> {
 				MinecraftClient mc = MinecraftClient.getInstance();
-				boolean ret = waveDriver.LoadFile();
-				if(ret){
+				try {
+					waveDriver.LoadFile();
 					mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("Successfully loaded WFC Matrix from file."), mc.player.getUuid());
-				} else {
+				} catch (ClassNotFoundException | IOException e) {
 					mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("Failed to load WFC Matrix from file."), mc.player.getUuid());
+					e.printStackTrace();
 				}
+
 				return 1;
 			}));
 		});

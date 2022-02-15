@@ -2,7 +2,11 @@ package net.fabricmc.wavy;
 
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -102,34 +106,34 @@ public class WaveDriver {
             System.out.println("Did not create new file");
         }
         
-        BlockState test = world.getBlockState(new BlockPos(new Vec3d(0, 1, 0)));
-        //System.out.println(test.hashCode());
-        System.out.println(test.hashCode());
-        
+        HashMap<Integer, String> saveIntegerToBlockMap = new HashMap<Integer, String>();
+
+        for (Integer i : integerToBlockMap.keySet()) {
+            saveIntegerToBlockMap.put(i, integerToBlockMap.get(i).toString());
+        }
+
+        FileOutputStream f = new FileOutputStream(save);
+        ObjectOutputStream o = new ObjectOutputStream(f);
+
+        o.writeObject(saveIntegerToBlockMap);
+        o.close();
 
         return true;
     }
 
-    public boolean LoadFile(){
+    public boolean LoadFile() throws IOException, ClassNotFoundException{
+        Path path = FabricLoader.getInstance().getConfigDir();
+        File save = path.resolve ( filename + ".properties").toFile();
 
-        /*private void loadConfig() throws IOException {
-        Scanner reader = new Scanner( request.file );
-        for( int line = 1; reader.hasNextLine(); line ++ ) {
-            parseConfigEntry( reader.nextLine(), line );
-        }
-        reader.close(); //Gabriel change 
-    }
+        FileInputStream f = new FileInputStream(save);
+        ObjectInputStream o = new ObjectInputStream(f);
 
-    private void parseConfigEntry( String entry, int line ) {
-        if( !entry.isEmpty() && !entry.startsWith( "#" ) ) {
-            String[] parts = entry.split("=", 2);
-            if( parts.length == 2 ) {
-                config.put( parts[0], parts[1] );
-            }else{
-                throw new RuntimeException("Syntax error in config file on line " + line + "!");
-            }
-        }
-    } */
+        HashMap<Integer, String> test = (HashMap<Integer, String>) o.readObject();
+        
+        System.out.println(test);
+        
+        o.close();
+       
         return true;
     }
 
