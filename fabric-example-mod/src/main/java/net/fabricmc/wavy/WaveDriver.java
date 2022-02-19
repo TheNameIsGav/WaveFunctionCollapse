@@ -84,22 +84,9 @@ public class WaveDriver {
     HashMap<Integer, Vector<Vector<Integer>> > adj = new HashMap<Integer, Vector<Vector<Integer>>>(); //Needed in Save
     HashMap<BlockPos, Vector<Integer>> collapseMap = new HashMap<BlockPos, Vector<Integer>>();
     HashMap<BlockPos, Vector<Integer>> backupMap = new HashMap<>(collapseMap); //Backup map
-
-
+    
     //Saving Information
     String filename = "WaveMatrix";
-    //private final HashMap<String, String> config = new HashMap<>();
-    class SerializableBlockState implements Serializable{
-
-        String name;
-        String properties;
-        BlockPos position;
-        //TODO Implement a custom serializer that transforms BlockStates to a string with properties in JSON
-        public SerializableBlockState(BlockState bs){
-            name = bs.toString();
-            properties = bs.getProperties().toString();
-        }
-    }
 
     public boolean SaveFile() throws IOException{
         Path path = FabricLoader.getInstance().getConfigDir();
@@ -199,35 +186,22 @@ public class WaveDriver {
                         break;
                     case "north":
                         tester.with(Properties.FACING, Direction.NORTH);
-                        break;
-                    case "south":
-                        tester.with(Properties.FACING, Direction.SOUTH);
-                        break;
-                    case "west":
-                        tester.with(Properties.FACING, Direction.WEST);
-                        break;
-                    case "east":
-                        tester.with(Properties.FACING, Direction.EAST);
-                        break;
-                    case "up":
-                        tester.with(Properties.FACING, Direction.UP);
-                        break;
-                }
-            }
-
-            if(propertyMap.containsKey("facing")){
-                switch(propertyMap.get("facing")){
-                    case "north":
                         tester.with(Properties.HORIZONTAL_FACING, Direction.NORTH);
                         break;
                     case "south":
+                        tester.with(Properties.FACING, Direction.SOUTH);
                         tester.with(Properties.HORIZONTAL_FACING, Direction.SOUTH);
                         break;
                     case "west":
+                        tester.with(Properties.FACING, Direction.WEST);
                         tester.with(Properties.HORIZONTAL_FACING, Direction.WEST);
                         break;
                     case "east":
+                        tester.with(Properties.FACING, Direction.EAST);
                         tester.with(Properties.HORIZONTAL_FACING, Direction.EAST);
+                        break;
+                    case "up":
+                        tester.with(Properties.FACING, Direction.UP);
                         break;
                 }
             }
