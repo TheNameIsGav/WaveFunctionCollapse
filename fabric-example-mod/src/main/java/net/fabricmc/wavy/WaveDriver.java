@@ -13,10 +13,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 
+import org.apache.commons.lang3.StringUtils;
+
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
+import net.minecraft.block.enums.StairShape;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.util.math.Vector3d;
 import net.minecraft.network.MessageType;
@@ -24,8 +27,6 @@ import net.minecraft.state.property.Properties;
 import net.minecraft.text.LiteralText;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.registry.Registry;
 import net.minecraft.world.World;
 
 
@@ -65,7 +66,7 @@ public class WaveDriver {
 
     //Used to convert from an intger to a block. Used when initially reading through the input
     HashMap<Integer, BlockState> integerToBlockMap = new HashMap<Integer, BlockState>( ); //Needed in Save
-    HashMap<BlockState, Integer> blockToIntegerMap = new HashMap<BlockState, Integer>( ); //Needed in Save
+    HashMap<BlockState, Integer> blockToIntegerMap = new HashMap<BlockState, Integer>( );
 
     //Lists all the blocks (As integers) that we have seen, and their count
     HashMap<Integer, Integer> listOfSeenBlocks = new HashMap<Integer, Integer> ( ); //Needed in Save
@@ -122,6 +123,9 @@ public class WaveDriver {
         ObjectOutputStream o = new ObjectOutputStream(f);
 
         o.writeObject(saveIntegerToBlockMap);
+        o.writeObject(adj);
+        o.writeObject(listOfSeenBlocks);
+
         o.close();
 
         return true;
@@ -135,25 +139,148 @@ public class WaveDriver {
         ObjectInputStream o = new ObjectInputStream(f);
 
         HashMap<Integer, String> test = (HashMap<Integer, String>) o.readObject();
+
+        adj = (HashMap<Integer, Vector<Vector<Integer>> >) o.readObject();
+        listOfSeenBlocks = (HashMap<Integer, Integer>) o.readObject();
         
-        convertStringToBlockState(test.get(0));
+        //Convert test to integerToBlockMap and blockToIntegerMap;
+        for(int i : test.keySet()){
+            convertStringToBlockState(test.get(i), i);
+        }
         
         o.close();
+
+        System.out.println(integerToBlockMap);
+        System.out.println(listOfSeenBlocks);
+        System.out.println(adj);
        
         return true;
     }
 
-    public BlockState convertStringToBlockState(String s){
+    public void convertStringToBlockState(String s, int i){
 
-        System.out.println(s);
-        BlockState tester = integerToBlockMap.get(0);
+        BlockState tester;
+        String block = "COBBLESTONE";
+        HashMap<String, String> propertyMap = new HashMap<String, String> ();
+
+        if(s.contains("[")){ //Need to do all the property handling
+            String preProperties = s.split("}")[1];
+            preProperties = preProperties.replace("[", "");
+            preProperties = preProperties.replace("]", "");
+
+            for(String p : preProperties.contains(",") ? preProperties.split(",") : new String[]{preProperties}){
+                propertyMap.put(p.split("=")[0], p.split("=")[1]);
+            }
+
+            block = s.split(":")[1];
+            block = block.split("}")[0];
+            block = block.toUpperCase();   
+            
+        } else { //we can just do the block
+            block = StringUtils.chop(s.split(":")[1].toUpperCase());
+        }
+
+        //System.out.println(block + ":" + propertyMap); 
 
         //world.setBlockState(new BlockPos(0,80,0), Blocks.DISPENSER.getDefaultState().with(Properties.FACING, Direction.DOWN), 3);
         try {
 
-            Field t = Blocks.class.getField("COBBLESTONE");
+            Field t = Blocks.class.getField(block);
             Block r = (Block) t.get(null);
             tester = r.getDefaultState();
+
+            //Property Testing
+
+            //There are two types of facings for some reason
+            if(propertyMap.containsKey("facing")){
+                switch(propertyMap.get("facing")){
+                    case "down":
+                        tester.with(Properties.FACING, Direction.DOWN);
+                        break;
+                    case "north":
+                        tester.with(Properties.FACING, Direction.NORTH);
+                        break;
+                    case "south":
+                        tester.with(Properties.FACING, Direction.SOUTH);
+                        break;
+                    case "west":
+                        tester.with(Properties.FACING, Direction.WEST);
+                        break;
+                    case "east":
+                        tester.with(Properties.FACING, Direction.EAST);
+                        break;
+                    case "up":
+                        tester.with(Properties.FACING, Direction.UP);
+                        break;
+                }
+            }
+
+            if(propertyMap.containsKey("facing")){
+                switch(propertyMap.get("facing")){
+                    case "north":
+                        tester.with(Properties.HORIZONTAL_FACING, Direction.NORTH);
+                        break;
+                    case "south":
+                        tester.with(Properties.HORIZONTAL_FACING, Direction.SOUTH);
+                        break;
+                    case "west":
+                        tester.with(Properties.HORIZONTAL_FACING, Direction.WEST);
+                        break;
+                    case "east":
+                        tester.with(Properties.HORIZONTAL_FACING, Direction.EAST);
+                        break;
+                }
+            }
+
+            if(propertyMap.containsKey("waterlogged")){
+                switch(propertyMap.get("waterlogged")){
+                    case "true":
+                        tester.with(Properties.WATERLOGGED, true);
+                        break;
+                    case "false":
+                        tester.with(Properties.WATERLOGGED, false);
+                        break;
+                }
+            }
+
+            if(propertyMap.containsKey("shape") && block.contains("STAIR")){ //Stair Shape
+                switch(propertyMap.get("shape")){
+                    case "straight":
+                        tester.with(Properties.STAIR_SHAPE, StairShape.STRAIGHT);
+                        break;
+                    case "inner_left":
+                        tester.with(Properties.STAIR_SHAPE, StairShape.INNER_LEFT);
+                        break;
+                    case "outer_left":
+                        tester.with(Properties.STAIR_SHAPE, StairShape.OUTER_LEFT);
+                        break;
+                    case "inner_right":
+                        tester.with(Properties.STAIR_SHAPE, StairShape.INNER_RIGHT);
+                        break;
+                    case "outer_right":
+                        tester.with(Properties.STAIR_SHAPE, StairShape.OUTER_RIGHT);
+                        break;
+                }
+            }
+
+            //if(propertyMap.containsKey("half")){
+
+            if(propertyMap.containsKey("axis")){
+                switch(propertyMap.get("axis")){
+                    case "x":
+                        tester.with(Properties.AXIS, Direction.Axis.X);
+                        break;
+                    case "y":
+                        tester.with(Properties.AXIS, Direction.Axis.Y);
+                        break;
+                    case "z":
+                        tester.with(Properties.AXIS, Direction.Axis.Z);
+                        break;
+                }
+            }
+
+            integerToBlockMap.put(i, tester);
+            blockToIntegerMap.put(tester, i);
             
         } catch (NoSuchFieldException | SecurityException e) {
             // TODO Auto-generated catch block
@@ -165,10 +292,6 @@ public class WaveDriver {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-
-        System.out.println(tester + " Here it works");
-
-        return tester;
     }
 
     public WaveDriver(){
