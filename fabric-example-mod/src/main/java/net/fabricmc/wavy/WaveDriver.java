@@ -7,7 +7,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.Serializable;
 import java.lang.reflect.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -83,7 +82,7 @@ public class WaveDriver {
     */
     HashMap<Integer, Vector<Vector<Integer>> > adj = new HashMap<Integer, Vector<Vector<Integer>>>(); //Needed in Save
     HashMap<BlockPos, Vector<Integer>> collapseMap = new HashMap<BlockPos, Vector<Integer>>();
-    HashMap<BlockPos, Vector<Integer>> backupMap = new HashMap<>(collapseMap); //Backup map
+    Set<BlockPos> collapsed = new HashSet<BlockPos>(); //Set of all collapsed nodse
     
     //Saving Information
     String filename = "WaveMatrix";
@@ -137,10 +136,10 @@ public class WaveDriver {
         
         o.close();
 
-        System.out.println(integerToBlockMap);
-        System.out.println(listOfSeenBlocks);
-        System.out.println(adj);
-       
+        //System.out.println(integerToBlockMap);
+        //System.out.println(listOfSeenBlocks);
+        //System.out.println(adj);
+        hasRunFirstStep = true;
         return true;
     }
 
@@ -305,10 +304,10 @@ public class WaveDriver {
         int lenY = Math.abs( pos1.getY() - pos2.getY() );
         int lenZ = Math.abs( pos1.getZ() - pos2.getZ() );
         int area = lenX * lenY * lenZ;
-        if( area >= constraint){
-            print("Your selected area appears to be too large with size " + area + ". The current constraint is set at " + constraint + ". If you would like to change this, please use the /constrain command (Non-functional), but procede with caution");
-            return -2;
-        }
+        // if( area >= constraint){
+        //     print("Your selected area appears to be too large with size " + area + ". The current constraint is set at " + constraint + ". If you would like to change this, please use the /constrain command (Non-functional), but procede with caution");
+        //     return -2;
+        // }
 
         //Reset all the nonsense
         integerToBlockMap = new HashMap<Integer, BlockState>( );
@@ -324,8 +323,11 @@ public class WaveDriver {
             return j;
         }
 
-        System.out.println("Block to integer map \n" + blockToIntegerMap);
-        System.out.println("List of seen blocks \n" + listOfSeenBlocks);
+        System.out.println(blockToIntegerMap);
+        System.out.println(adj);
+
+        //System.out.println("Block to integer map \n" + blockToIntegerMap);
+        //System.out.println("List of seen blocks \n" + listOfSeenBlocks);
 
         hasRunFirstStep = true;
         return 1;
@@ -365,20 +367,18 @@ public class WaveDriver {
                 }
             }
         }
-
-        
-        backupMap = new HashMap<>(collapseMap);
         
         CollapseCorners();
-        System.out.println(collapseMap);
 
-        int itr = 500;
+        int itr = 10;
         boolean done = false;
+
+        GenerateWorld();
+        System.out.println(collapseMap);
         
         while(!done && itr > 0){
             itr--;
             
-
             //Find lowest entropy to collapse
             BlockPos current = findLeastEntropy();
             //System.out.println("Current " + current);
@@ -388,6 +388,7 @@ public class WaveDriver {
             System.out.println("Ieration: " + itr);
             //Change the surrounding nodes
             changeSurrounding(current, SHOULDWRAP);
+            //System.out.println(collapseMap);
 
             if(collapsed.size() == collapseMap.keySet().size()){
                 done = true;
@@ -419,13 +420,15 @@ public class WaveDriver {
         r.add(runPos2);
 
         for(BlockPos a : r){
+
+            System.out.println("Collapsing corner: " + a);
             collapseNode(a);
             changeSurrounding(a, false);
         }
     }
 
     private void GenerateWorld(){
-        System.out.println("Made into Generate world");
+        //System.out.println("Made into Generate world");
         Iterator<BlockPos> iter = collapsed.iterator();
         
         while(iter.hasNext()){
@@ -433,24 +436,23 @@ public class WaveDriver {
             if(collapseMap.get(current).get(0) == null){ //Trying to remove errors from generating nothing just for now TODO needs to be removed when wrapping gets added
                 //world.setBlockState(current, AirBlock.getStateFromRawId(0));
             } else {
-                world.setBlockState(current, integerToBlockMap.get(collapseMap.get(current).get(0)));
+                world.setBlockState(current, integerToBlockMap.get(collapseMap.get(current).get(0)), 1);
             }
         }
     }
 
-    Set<BlockPos> collapsed = new HashSet<BlockPos>();
+
     private BlockPos findLeastEntropy(){
-        BlockPos[] blockArr = new BlockPos[collapseMap.size()];
-        collapseMap.keySet().toArray(blockArr);
-        BlockPos ret = blockArr[0];
-        for(int i = 0; i < blockArr.length; i++){
-            if(!collapsed.contains(blockArr[i])){ //If we haven't collapsed this node before
-                if(collapseMap.get(blockArr[i]).size() <= collapseMap.get(ret).size()){ //If our size is less
-                    ret = blockArr[i];
+
+        BlockPos ret = runPos1; //Position garunteed to be in the original map
+        for(BlockPos b : collapseMap.keySet()){
+            if(!collapsed.contains(b)){
+                if(collapseMap.get(b).size() <= collapseMap.get(ret).size()){
+                    ret = b;
                 }
             }
         }
-        
+
         return ret;
     }
 
@@ -546,15 +548,17 @@ public class WaveDriver {
         //System.out.println(collapseMap);
     }
 
-    private void collapseNode(BlockPos block){
+    private void collapseNode(BlockPos blockPos){
 
         //Get adj's from that current block
-        Vector<Integer> potential = collapseMap.get(block);
+        Vector<Integer> potential = collapseMap.get(blockPos);
+        
 
         if(potential.size() == 0){
             Vector<Integer> x = new Vector<Integer>();
+            System.out.println(potential + " " + blockPos);
             x.add(-1);
-            collapseMap.put(block, x);
+            collapseMap.put(blockPos, x);
             return;
         }
 
@@ -572,10 +576,10 @@ public class WaveDriver {
         int myRandomItem = potential.get(idx);
         Vector<Integer> t = new Vector<Integer>();
         t.add(myRandomItem);
-        collapsed.add(block);
-        System.out.println("Adding " + myRandomItem + " at " + block);
+        collapsed.add(blockPos);
+        //System.out.println("Adding " + myRandomItem + " at " + block);
         //Pick one
-        collapseMap.put(block, t);
+        collapseMap.put(blockPos, t);
     }
 
     //Builds Adjacency matrix and setups block to int conversion
