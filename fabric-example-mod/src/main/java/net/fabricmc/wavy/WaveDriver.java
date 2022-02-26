@@ -98,7 +98,7 @@ public class WaveDriver {
         } catch (IOException e) {
             System.out.println("Did not create new file");
         }
-        
+        //TODO figure out how to add edge adjacencies
         HashMap<Integer, String> saveIntegerToBlockMap = new HashMap<Integer, String>();
 
         for (Integer i : integerToBlockMap.keySet()) {
@@ -128,7 +128,7 @@ public class WaveDriver {
 
         adj = (HashMap<Integer, Vector<Vector<Integer>> >) o.readObject();
         listOfSeenBlocks = (HashMap<Integer, Integer>) o.readObject();
-        
+        //TODO figure out how to load the edge adjacencies
         //Convert test to integerToBlockMap and blockToIntegerMap;
         for(int i : test.keySet()){
             convertStringToBlockState(test.get(i), i);
@@ -256,13 +256,13 @@ public class WaveDriver {
             blockToIntegerMap.put(tester, i);
             
         } catch (NoSuchFieldException | SecurityException e) {
-            // TODO Auto-generated catch block
+            // Auto-generated catch block
             e.printStackTrace();
         } catch (IllegalArgumentException e) {
-            // TODO Auto-generated catch block
+            // Auto-generated catch block
             e.printStackTrace();
         } catch (IllegalAccessException e) {
-            // TODO Auto-generated catch block
+            // Auto-generated catch block
             e.printStackTrace();
         }
     }
@@ -433,7 +433,7 @@ public class WaveDriver {
         
         while(iter.hasNext()){
             BlockPos current = iter.next();
-            if(collapseMap.get(current).get(0) == null){ //Trying to remove errors from generating nothing just for now TODO needs to be removed when wrapping gets added
+            if(collapseMap.get(current).get(0) == null){ 
                 //world.setBlockState(current, AirBlock.getStateFromRawId(0));
             } else {
                 world.setBlockState(current, integerToBlockMap.get(collapseMap.get(current).get(0)), 1);
@@ -593,6 +593,19 @@ public class WaveDriver {
         int yDir = pos1.getY() < pos2.getY() ? 1 : -1;
         int zDir = pos1.getZ() < pos2.getZ() ? 1 : -1;
 
+
+        //I hate this duplicate code, for adding in edges to the matrix
+        Vector<Vector<Integer>> a = new Vector<Vector<Integer>>();
+        for(int i = 0; i < 6; i++){
+            a.add(new Vector<Integer>());
+        }
+
+        blockToIntegerMap.put(Blocks.VOID_AIR.getDefaultState(), -1);
+
+        System.out.println(blockToIntegerMap);
+
+        adj.put(-1, a);
+
         for(int x = pos1.getX(); x != pos2.getX() + xDir; x = x + xDir){
             for(int y = pos1.getY(); y != pos2.getY() + yDir; y = y + yDir){
                 for(int z = pos1.getZ(); z != pos2.getZ() + zDir; z = z + zDir){
@@ -617,14 +630,13 @@ public class WaveDriver {
                         currentIndex++;
                     } else {
                         //Add 1 to the block in listOfSeenBlock
-                        
-                            int thisBlock = blockToIntegerMap.get(b);
-                            listOfSeenBlocks.put(thisBlock, listOfSeenBlocks.get(thisBlock) + 1);
+                        int thisBlock = blockToIntegerMap.get(b);
+                        listOfSeenBlocks.put(thisBlock, listOfSeenBlocks.get(thisBlock) + 1);
                         
                     }
 
                     //I've now added to the list the block, time to check it's adjacencies
-                    addAdjacencies(b, thisPos);
+                    addAdjacencies(blockToIntegerMap.get(b), thisPos);
                     //If we added to the index, we need to add 1 at the end. 
 
                 }
@@ -639,61 +651,124 @@ public class WaveDriver {
     }
 
     //Add's all the adjacencies for a block
-    private void addAdjacencies(BlockState b, BlockPos p){
+    private void addAdjacencies(int originalBlockInt, BlockPos p){
 
-        //Wrap p + direction
+        System.out.println("Adding Adjacencies");
+
+        //Wrap p + direction.
+        BlockState newBlock;
+        int idx;
         
         //Up
         BlockPos newPos = p.up();
-        BlockState newBlock = world.getBlockState(newPos);
-        testSymbolSeenBefore(newBlock);
-        addSingleAdjacency(b, newBlock, 0);
+        if(!evaulatePosition(newPos))
+        {
+            addSingleAdjacency(-1, originalBlockInt, 1);
+            addSingleAdjacency(originalBlockInt, -1, 0);
+        } else {
+            newBlock = world.getBlockState(newPos);
+            idx = testSymbolSeenBefore(newBlock);
+            addSingleAdjacency(originalBlockInt, idx, 0);
+        }
 
         //Down
         newPos = p.down();
-        newBlock = world.getBlockState(newPos);
-        testSymbolSeenBefore(newBlock);
-        addSingleAdjacency(b, newBlock, 1);
-
+        if(!evaulatePosition(newPos))
+        {
+            addSingleAdjacency(-1, originalBlockInt, 0);
+            addSingleAdjacency(originalBlockInt, -1, 1);
+        } else {
+            newBlock = world.getBlockState(newPos);
+            idx = testSymbolSeenBefore(newBlock);
+            addSingleAdjacency(originalBlockInt, idx, 1);
+        }
         //Left
         newPos = p.west();
-        newBlock = world.getBlockState(newPos);
-        testSymbolSeenBefore(newBlock);
-        addSingleAdjacency(b, newBlock, 2);
+        if(!evaulatePosition(newPos))
+        {
+            addSingleAdjacency(-1, originalBlockInt, 3);
+            addSingleAdjacency(originalBlockInt, -1, 2);
+        } else {
+            newBlock = world.getBlockState(newPos);
+            idx = testSymbolSeenBefore(newBlock);
+            addSingleAdjacency(originalBlockInt, idx, 2);
+        }
 
         //Right
         newPos = p.east();
-        newBlock = world.getBlockState(newPos);
-        testSymbolSeenBefore(newBlock);
-        addSingleAdjacency(b, newBlock, 3);
+        if(!evaulatePosition(newPos))
+        {
+            addSingleAdjacency(-1, originalBlockInt, 2);
+            addSingleAdjacency(originalBlockInt, -1, 3);
+        } else {
+            newBlock = world.getBlockState(newPos);
+            idx = testSymbolSeenBefore(newBlock);
+            addSingleAdjacency(originalBlockInt, idx, 3);
+        }
 
         //Forward
         newPos = p.north();
-        newBlock = world.getBlockState(newPos);
-        testSymbolSeenBefore(newBlock);
-        addSingleAdjacency(b, newBlock, 4);
+        if(!evaulatePosition(newPos))
+        {
+            addSingleAdjacency(-1, originalBlockInt, 5);
+            addSingleAdjacency(originalBlockInt, -1, 4);
+        } else {
+            newBlock = world.getBlockState(newPos);
+            idx = testSymbolSeenBefore(newBlock);
+            addSingleAdjacency(originalBlockInt, idx, 4);
+        }
 
         //Back
         newPos = p.south();
-        newBlock = world.getBlockState(newPos);
-        testSymbolSeenBefore(newBlock);
-        addSingleAdjacency(b, newBlock, 5);
+        if(!evaulatePosition(newPos))
+        {
+            //Add the original block to the list of adjacencies of block -1
+            addSingleAdjacency(-1, originalBlockInt, 4);
+            addSingleAdjacency(originalBlockInt, -1, 5);
+        } else {
+            newBlock = world.getBlockState(newPos);
+            idx = testSymbolSeenBefore(newBlock);
+            addSingleAdjacency(originalBlockInt, idx, 5);
+        }
+    }
+
+    //Returns true if the position is inside of the boundaries of the input position, and false if it is not
+    private boolean evaulatePosition(BlockPos position){
+        int maxX = pos1.getX() > pos2.getX() ? pos1.getX() : pos2.getX();
+        int minX = pos1.getX() < pos2.getX() ? pos1.getX() : pos2.getX();
+
+        int maxY = pos1.getY() > pos2.getY() ? pos1.getY() : pos2.getY();
+        int minY = pos1.getY() < pos2.getY() ? pos1.getY() : pos2.getY();
+
+        int maxZ = pos1.getZ() > pos2.getZ() ? pos1.getZ() : pos2.getZ();
+        int minZ = pos1.getZ() < pos2.getZ() ? pos1.getZ() : pos2.getZ();
+
+        //If this position is inside of the boundaries, we don't have to do anything
+        if((position.getX() >= minX && position.getX() <= maxX) &&
+           (position.getY() >= minY && position.getY() <= maxY) &&
+           (position.getZ() >= minZ && position.getZ() <= maxZ) ) {
+                System.out.println("Found " + position + " inside of matrix");
+                return true;
+           } else {
+                System.out.println("Found " + position + " outside of matrix");
+                return false;
+           }
     }
 
     //Adds the adjacencies in the direction
-    private void addSingleAdjacency(BlockState b, BlockState newBlock, int direction){
-            Vector<Integer> prevAdj = adj.get(blockToIntegerMap.get(b)).get(direction);
-            prevAdj.add(blockToIntegerMap.get(newBlock));
-            //Scuffed way of removing duplicates
-            LinkedHashSet<Integer> hashSet = new LinkedHashSet<Integer> (prevAdj);
-            prevAdj.clear();
-            prevAdj.addAll(hashSet);
+    private void addSingleAdjacency(int originalBlockInt, int newBlock, int direction){
+        Vector<Integer> prevAdj = adj.get(originalBlockInt).get(direction);
+        prevAdj.add(newBlock);
+        //Scuffed way of removing duplicates
+        LinkedHashSet<Integer> hashSet = new LinkedHashSet<Integer> (prevAdj);
+        prevAdj.clear();
+        prevAdj.addAll(hashSet);
 
-            adj.get(blockToIntegerMap.get(b)).set(direction, prevAdj);
+        adj.get(originalBlockInt).set(direction, prevAdj);
     }
 
     //Tests a single block if it's been seen before, and if it has not then we add all the appropriate stuff
-    private void testSymbolSeenBefore(BlockState b){
+    private int testSymbolSeenBefore(BlockState b){
         if(!blockToIntegerMap.containsKey(b)){ //Test if the block has been seen before, if it hasn't we need to add it
             integerToBlockMap.put(++currentIndex, b);
             blockToIntegerMap.put(b, currentIndex);
@@ -710,6 +785,8 @@ public class WaveDriver {
             
             adj.put(currentIndex, newVec);    
         }
+
+        return blockToIntegerMap.get(b);
     }
 
 }
