@@ -61,7 +61,7 @@ public class WaveDriver {
 
     //represents the degrees that we should wrap over (0 for false, 1 for true)
     private Vector3d WRAP = new Vector3d(1, 0, 1);
-    boolean SHOULDWRAP = true;
+    boolean SHOULDWRAP = false;
 
     //Used to convert from an intger to a block. Used when initially reading through the input
     HashMap<Integer, BlockState> integerToBlockMap = new HashMap<Integer, BlockState>( ); //Needed in Save
@@ -70,6 +70,9 @@ public class WaveDriver {
     //Lists all the blocks (As integers) that we have seen, and their count
     HashMap<Integer, Integer> listOfSeenBlocks = new HashMap<Integer, Integer> ( ); //Needed in Save
     int currentIndex = 0;
+
+    private BlockPos expandedRunPos1;
+    private BlockPos expandedRunPos2;
 
     //Map of Integer ID to A list of length 6 with each element being the adjacencies found at that direction
     /*
@@ -136,9 +139,10 @@ public class WaveDriver {
         
         o.close();
 
-        //System.out.println(integerToBlockMap);
-        //System.out.println(listOfSeenBlocks);
-        //System.out.println(adj);
+        System.out.println("Printing Data from Load File: ");
+        System.out.println("Integer To Block Map: " + integerToBlockMap);
+        System.out.println("List of Seen Blocks: " + listOfSeenBlocks);
+        System.out.println("Printing out Adjacency Matrix: " + adj);
         hasRunFirstStep = true;
         return true;
     }
@@ -300,10 +304,10 @@ public class WaveDriver {
         }
 
         //Test to see if the selection is too large
-        int lenX = Math.abs( pos1.getX() - pos2.getX() );
-        int lenY = Math.abs( pos1.getY() - pos2.getY() );
-        int lenZ = Math.abs( pos1.getZ() - pos2.getZ() );
-        int area = lenX * lenY * lenZ;
+        //int lenX = Math.abs( pos1.getX() - pos2.getX() );
+        //int lenY = Math.abs( pos1.getY() - pos2.getY() );
+        //int lenZ = Math.abs( pos1.getZ() - pos2.getZ() );
+        //int area = lenX * lenY * lenZ;
         // if( area >= constraint){
         //     print("Your selected area appears to be too large with size " + area + ". The current constraint is set at " + constraint + ". If you would like to change this, please use the /constrain command (Non-functional), but procede with caution");
         //     return -2;
@@ -319,12 +323,14 @@ public class WaveDriver {
         //Read in the input data
         int j = buildAdjacencies();
 
+        //System.out.println(listOfSeenBlocks);
+
         if(j < 0){
             return j;
         }
 
-        System.out.println(blockToIntegerMap);
-        System.out.println(adj);
+        //System.out.println(blockToIntegerMap);
+        //System.out.println(adj);
 
         //System.out.println("Block to integer map \n" + blockToIntegerMap);
         //System.out.println("List of seen blocks \n" + listOfSeenBlocks);
@@ -355,6 +361,9 @@ public class WaveDriver {
         Vector<Integer> t = new Vector<Integer>(listOfSeenBlocks.keySet()); //Makes a list of all the integers of seen blocks
         //System.out.println(t);
         //Setup The Beginning Collapse Map
+
+        AddEdges();
+        System.out.println("Made it past Add Edges");
        
         int xDir = runPos1.getX() < runPos2.getX() ? 1 : -1;
         int yDir = runPos1.getY() < runPos2.getY() ? 1 : -1;
@@ -367,28 +376,34 @@ public class WaveDriver {
                 }
             }
         }
+
+        System.out.println("CollapseMap: " + collapseMap);
+
+        System.out.println("Made it past adding blocks to collapse Map");
+
+        ManipulateEdges();
+
+        System.out.println("Made it past Manipulating Edges");
         
+        //TODO Change corners so that they get reverted to the original setting
         CollapseCorners();
+
+        System.out.println("Made it past Collapsing Corners");
 
         int itr = 10;
         boolean done = false;
-
-        GenerateWorld();
-        System.out.println(collapseMap);
         
         while(!done && itr > 0){
             itr--;
             
             //Find lowest entropy to collapse
             BlockPos current = findLeastEntropy();
-            //System.out.println("Current " + current);
-            //Something here doesn't work, I don't think that finding least entropy works the way that it is supposed to
+            
             //Collapse it
             collapseNode(current);
-            System.out.println("Ieration: " + itr);
+
             //Change the surrounding nodes
             changeSurrounding(current, SHOULDWRAP);
-            //System.out.println(collapseMap);
 
             if(collapsed.size() == collapseMap.keySet().size()){
                 done = true;
@@ -396,8 +411,80 @@ public class WaveDriver {
             
         }
 
+        System.out.println("Made it past the waavy step");
+
+        System.out.println(collapseMap.keySet().size());
+
         GenerateWorld();
         return 1;
+    }
+
+    //Method to add an outer ring to the collapse map by updating the runPositions
+    private void AddEdges(){
+        int maxX = 0;
+        int minX = 0;
+        
+        int maxY = 0;
+        int minY = 0;
+
+        int maxZ = 0;
+        int minZ = 0;
+        
+        //This is repeated code in a number of places, should probably make a glogalvariable
+        maxX = (runPos1.getX() > runPos2.getX() ? runPos1.getX() : runPos2.getX()) + 1;
+        maxY = (runPos1.getY() > runPos2.getY() ? runPos1.getY() : runPos2.getY()) + 1;
+        maxZ = (runPos1.getZ() > runPos2.getZ() ? runPos1.getZ() : runPos2.getZ()) + 1;
+
+        minX = (runPos1.getX() < runPos2.getX() ? runPos1.getX() : runPos2.getX()) - 1;
+        minY = (runPos1.getY() < runPos2.getY() ? runPos1.getY() : runPos2.getY()) - 1;
+        minZ = (runPos1.getZ() < runPos2.getZ() ? runPos1.getZ() : runPos2.getZ()) - 1;
+
+        runPos1 = new BlockPos(maxX, maxY, maxZ);
+        runPos2 = new BlockPos(minX, minY, minZ);
+
+    }
+    
+    //Add's the -1 adjacency to all the edges and updates the nodes on the inside
+    private void ManipulateEdges(){
+
+        Vector<BlockPos> edges = new Vector<BlockPos>();
+
+        for(BlockPos bp : collapseMap.keySet()){
+            System.out.println("Block position: " + bp);
+            int x = bp.getX();
+            int y = bp.getY();
+            int z = bp.getZ();
+            
+            if(!collapsed.contains(bp)){ //If we have not seen this before
+                System.out.println("Inside of the if statement");
+                //If we are on one of the xEdges
+                if(x == runPos1.getX() ||  x == runPos2.getX()) {
+                    System.out.println("Inside of the second if statement");
+                    collapseMap.put(bp, new Vector<Integer>(){{add(-1);}});
+                    collapsed.add(bp);
+                    edges.add(bp);
+                }
+
+                //if we are on one of the yEdges
+                if(y == runPos1.getY() || y == runPos2.getY()) {
+                    collapseMap.put(bp, new Vector<Integer>(){{add(-1);}});
+                    collapsed.add(bp);
+                    edges.add(bp);
+                }
+
+                //if we are on one of the zEdges 
+                if(z == runPos1.getZ() || z == runPos2.getZ()){
+                    collapseMap.put(bp, new Vector<Integer>(){{add(-1);}});
+                    collapsed.add(bp);
+                    edges.add(bp);
+                }
+            }
+        }
+
+        //At this point, we should have collapsed all of the edges, so we should then close the adjacencies, and the only thing in collapsed IS the edges
+        for(BlockPos bp : edges){
+            changeSurrounding(bp, SHOULDWRAP);
+        }
     }
 
     private void CollapseCorners(){
@@ -430,17 +517,16 @@ public class WaveDriver {
     private void GenerateWorld(){
         //System.out.println("Made into Generate world");
         Iterator<BlockPos> iter = collapsed.iterator();
-        
+        //Add in, if you're void air do not generate
         while(iter.hasNext()){
             BlockPos current = iter.next();
-            if(collapseMap.get(current).get(0) == null){ 
+            if(collapseMap.get(current).get(0) == -1){ 
                 //world.setBlockState(current, AirBlock.getStateFromRawId(0));
             } else {
                 world.setBlockState(current, integerToBlockMap.get(collapseMap.get(current).get(0)), 1);
             }
         }
     }
-
 
     private BlockPos findLeastEntropy(){
 
