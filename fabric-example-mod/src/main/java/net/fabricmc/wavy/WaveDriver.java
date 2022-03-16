@@ -71,8 +71,8 @@ public class WaveDriver {
     HashMap<Integer, Integer> listOfSeenBlocks = new HashMap<Integer, Integer> ( ); //Needed in Save
     int currentIndex = 0;
 
-    private BlockPos expandedRunPos1;
-    private BlockPos expandedRunPos2;
+    private BlockPos originalRunPos1;
+    private BlockPos originalRunPos2;
 
     //Map of Integer ID to A list of length 6 with each element being the adjacencies found at that direction
     /*
@@ -363,7 +363,7 @@ public class WaveDriver {
         //Setup The Beginning Collapse Map
 
         AddEdges();
-        System.out.println("Made it past Add Edges");
+        //System.out.println("Made it past Add Edges");
        
         int xDir = runPos1.getX() < runPos2.getX() ? 1 : -1;
         int yDir = runPos1.getY() < runPos2.getY() ? 1 : -1;
@@ -377,20 +377,20 @@ public class WaveDriver {
             }
         }
 
-        System.out.println("CollapseMap: " + collapseMap);
+        //System.out.println("CollapseMap: " + collapseMap);
 
-        System.out.println("Made it past adding blocks to collapse Map");
+        //System.out.println("Made it past adding blocks to collapse Map");
 
         ManipulateEdges();
 
-        System.out.println("Made it past Manipulating Edges");
+        //System.out.println("Made it past Manipulating Edges");
         
         //TODO Change corners so that they get reverted to the original setting
         CollapseCorners();
 
         System.out.println("Made it past Collapsing Corners");
 
-        int itr = 10;
+        int itr = 500;
         boolean done = false;
         
         while(!done && itr > 0){
@@ -413,10 +413,32 @@ public class WaveDriver {
 
         System.out.println("Made it past the waavy step");
 
-        System.out.println(collapseMap.keySet().size());
+        RemoveEdgeBlocks();
 
         GenerateWorld();
         return 1;
+    }
+
+    private void RemoveEdgeBlocks(){
+
+        Set<BlockPos> temp = collapseMap.keySet();
+        Vector<BlockPos> stuff = new Vector<BlockPos>();
+
+        for(BlockPos b : temp ){
+            if(collapseMap.get(b).contains(-1)){
+                stuff.add(b);
+            }
+        }
+
+        //System.out.println("Made it past adding bad blocks");
+
+        for(BlockPos b : stuff){
+            collapseMap.remove(b);
+            collapsed.remove(b);
+        }
+
+        //System.out.println(collapseMap);
+
     }
 
     //Method to add an outer ring to the collapse map by updating the runPositions
@@ -439,6 +461,9 @@ public class WaveDriver {
         minY = (runPos1.getY() < runPos2.getY() ? runPos1.getY() : runPos2.getY()) - 1;
         minZ = (runPos1.getZ() < runPos2.getZ() ? runPos1.getZ() : runPos2.getZ()) - 1;
 
+        originalRunPos1 = runPos1;
+        originalRunPos2 = runPos2;
+
         runPos1 = new BlockPos(maxX, maxY, maxZ);
         runPos2 = new BlockPos(minX, minY, minZ);
 
@@ -450,16 +475,16 @@ public class WaveDriver {
         Vector<BlockPos> edges = new Vector<BlockPos>();
 
         for(BlockPos bp : collapseMap.keySet()){
-            System.out.println("Block position: " + bp);
+            //System.out.println("Block position: " + bp);
             int x = bp.getX();
             int y = bp.getY();
             int z = bp.getZ();
             
             if(!collapsed.contains(bp)){ //If we have not seen this before
-                System.out.println("Inside of the if statement");
+                //System.out.println("Inside of the if statement");
                 //If we are on one of the xEdges
                 if(x == runPos1.getX() ||  x == runPos2.getX()) {
-                    System.out.println("Inside of the second if statement");
+                    //System.out.println("Inside of the second if statement");
                     collapseMap.put(bp, new Vector<Integer>(){{add(-1);}});
                     collapsed.add(bp);
                     edges.add(bp);
@@ -489,27 +514,27 @@ public class WaveDriver {
 
     private void CollapseCorners(){
         //Collapse all 8 corners
-        int xDif = runPos1.getX() - runPos2.getX();
-        int yDif = runPos1.getY() - runPos2.getY();
-        int zDif = runPos1.getZ() - runPos2.getZ();
+        int xDif = originalRunPos1.getX() - originalRunPos2.getX();
+        int yDif = originalRunPos1.getY() - originalRunPos2.getY();
+        int zDif = originalRunPos1.getZ() - originalRunPos2.getZ();
 
         Vector<BlockPos> r = new Vector<BlockPos>();
 
-        r.add(new BlockPos(runPos1.getX() - xDif, runPos1.getY(), runPos1.getZ()));
-        r.add(new BlockPos(runPos1.getX(), runPos1.getY() - yDif, runPos1.getZ()));
-        r.add(new BlockPos(runPos1.getX(), runPos1.getY(), runPos1.getZ() - zDif));
+        r.add(new BlockPos(originalRunPos1.getX() - xDif, originalRunPos1.getY(), originalRunPos1.getZ()));
+        r.add(new BlockPos(originalRunPos1.getX(), originalRunPos1.getY() - yDif, originalRunPos1.getZ()));
+        r.add(new BlockPos(originalRunPos1.getX(), originalRunPos1.getY(), originalRunPos1.getZ() - zDif));
 
-        r.add(new BlockPos(runPos2.getX() + xDif, runPos2.getY(), runPos2.getZ()));
-        r.add(new BlockPos(runPos2.getX(), runPos2.getY() + yDif, runPos2.getZ()));
-        r.add(new BlockPos(runPos2.getX(), runPos2.getY(), runPos2.getZ() + zDif));
+        r.add(new BlockPos(originalRunPos2.getX() + xDif, runPos2.getY(), originalRunPos2.getZ()));
+        r.add(new BlockPos(originalRunPos2.getX(), originalRunPos2.getY() + yDif, originalRunPos2.getZ()));
+        r.add(new BlockPos(originalRunPos2.getX(), originalRunPos2.getY(), originalRunPos2.getZ() + zDif));
 
-        r.add(runPos1);
-        r.add(runPos2);
+        r.add(originalRunPos1);
+        r.add(originalRunPos2);
 
         for(BlockPos a : r){
 
-            System.out.println("Collapsing corner: " + a);
             collapseNode(a);
+            System.out.println("Collapsed corner " + a + " to " + collapseMap.get(a));
             changeSurrounding(a, false);
         }
     }
