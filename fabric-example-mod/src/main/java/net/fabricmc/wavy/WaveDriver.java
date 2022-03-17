@@ -385,8 +385,8 @@ public class WaveDriver {
 
         //System.out.println("Made it past Manipulating Edges");
         
-        //TODO Change corners so that they get reverted to the original setting
-        CollapseCorners();
+        
+        //CollapseCorners();
 
         System.out.println("Made it past Collapsing Corners");
 
