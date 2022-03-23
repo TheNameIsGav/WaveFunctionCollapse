@@ -84,7 +84,7 @@ public class WaveDriver {
     5 - Back
     */
     HashMap<Integer, Vector<Vector<Integer>> > adj = new HashMap<Integer, Vector<Vector<Integer>>>(); //Needed in Save
-    HashMap<BlockPos, Vector<Integer>> collapseMap = new HashMap<BlockPos, Vector<Integer>>();
+    HashMap<BlockPos, Vector<Integer>> collapseMap = new HashMap<BlockPos, Vector<Integer>>(); //List of all block positions in the map and their possibilites
     Set<BlockPos> collapsed = new HashSet<BlockPos>(); //Set of all collapsed nodse
     
     //Saving Information
@@ -362,35 +362,50 @@ public class WaveDriver {
         //System.out.println(t);
         //Setup The Beginning Collapse Map
 
-        AddEdges();
-        //System.out.println("Made it past Add Edges");
-       
-        int xDir = runPos1.getX() < runPos2.getX() ? 1 : -1;
-        int yDir = runPos1.getY() < runPos2.getY() ? 1 : -1;
-        int zDir = runPos1.getZ() < runPos2.getZ() ? 1 : -1;
+        //runPos1 = new BlockPos(0, 0, 0);
+        //runPos2 = new BlockPos(0, 0, 0);
 
-        for(int x = runPos1.getX(); x != runPos2.getX() + xDir; x = x + xDir){
-            for(int y = runPos1.getY(); y != runPos2.getY() + yDir; y = y + yDir){
-                for(int z = runPos1.getZ(); z != runPos2.getZ() + zDir; z = z + zDir){
-                    collapseMap.put(new BlockPos(x, y, z), t); //Adds all the default adjacencies to the nodes
+        //Verify integrity of Add edges
+        System.out.println("Before Change \n Run Pos 1: " + runPos1 + "\nRun Pos 2: " + runPos2);
+        AddEdges();
+        System.out.println("After Change \n Run Pos 1: " + runPos1 + "\n Run Pos 2: " + runPos2);
+        System.out.println("\n Should match original runPositions \n Original Run Pos1: " + originalRunPos1 + "\n Original Run Pos2: " + originalRunPos2);
+
+       //Verify Integrity of Directions
+        int xDist = Math.abs(runPos1.getX() - runPos2.getX());
+        int yDist = Math.abs(runPos1.getY() - runPos2.getY());
+        int zDist = Math.abs(runPos1.getZ() - runPos2.getZ());
+
+        System.out.println("\nxDist " + xDist + "\nyDist " + yDist + " \nzDist " + zDist);
+
+        //Verify Integrity of Collapse Map Adding
+        for(int x = 0; x <= xDist; x++){
+            for(int y = 0; y <= yDist; y++){
+                for(int z = 0; z <= zDist; z++){
+                    //System.out.println((x + runPos2.getX()) + ", " + (y + runPos2.getY()) + ", " + (z + runPos2.getZ()));
+                    collapseMap.put(new BlockPos((x + runPos2.getX()), (y + runPos2.getY()), (z + runPos2.getZ())), t); //Adds all the default adjacencies to the nodes
                 }
             }
         }
 
-        //System.out.println("CollapseMap: " + collapseMap);
-
-        //System.out.println("Made it past adding blocks to collapse Map");
-
+        System.out.println("Size of CollapseMap before Manipulate Edges: " + collapseMap.size());
+        System.out.println("Size of Collapsed Nodes before Manipulate Edges: " + collapsed.size());
+        System.out.println("\nRun Pos1: " + runPos1 + "\nRun Pos2: " + runPos2);
+        
         ManipulateEdges();
 
-        //System.out.println("Made it past Manipulating Edges");
+        System.out.println("Size of CollapseMap after Manipulate Edges: " + collapseMap.size());
+        System.out.println("Size of Collapsed Nodes after Manipulate Edges: " + collapsed.size());
+        System.out.println("\nRun Pos1: " + runPos1 + "\nRun Pos2: " + runPos2);
+
+        System.out.println(collapsed.contains(originalRunPos1));
         
-        
+/*      
         //CollapseCorners();
 
-        System.out.println("Made it past Collapsing Corners");
+        //System.out.println("Made it past Collapsing Corners");
 
-        int itr = 500;
+        int itr = 15000;
         boolean done = false;
         
         while(!done && itr > 0){
@@ -398,7 +413,7 @@ public class WaveDriver {
             
             //Find lowest entropy to collapse
             BlockPos current = findLeastEntropy();
-            
+
             //Collapse it
             collapseNode(current);
 
@@ -416,6 +431,10 @@ public class WaveDriver {
         RemoveEdgeBlocks();
 
         GenerateWorld();
+
+        runPos1 = originalRunPos1;
+        runPos2 = originalRunPos2;
+*/
         return 1;
     }
 
@@ -429,16 +448,12 @@ public class WaveDriver {
                 stuff.add(b);
             }
         }
-
         //System.out.println("Made it past adding bad blocks");
 
         for(BlockPos b : stuff){
             collapseMap.remove(b);
             collapsed.remove(b);
         }
-
-        //System.out.println(collapseMap);
-
     }
 
     //Method to add an outer ring to the collapse map by updating the runPositions
@@ -534,7 +549,7 @@ public class WaveDriver {
         for(BlockPos a : r){
 
             collapseNode(a);
-            System.out.println("Collapsed corner " + a + " to " + collapseMap.get(a));
+            //System.out.println("Collapsed corner " + a + " to " + collapseMap.get(a));
             changeSurrounding(a, false);
         }
     }
@@ -547,6 +562,7 @@ public class WaveDriver {
             BlockPos current = iter.next();
             if(collapseMap.get(current).get(0) == -1){ 
                 //world.setBlockState(current, AirBlock.getStateFromRawId(0));
+                System.out.println("Should never get here");
             } else {
                 world.setBlockState(current, integerToBlockMap.get(collapseMap.get(current).get(0)), 1);
             }
@@ -667,7 +683,7 @@ public class WaveDriver {
 
         if(potential.size() == 0){
             Vector<Integer> x = new Vector<Integer>();
-            System.out.println(potential + " " + blockPos);
+            //System.out.println(potential + " " + blockPos);
             x.add(-1);
             collapseMap.put(blockPos, x);
             return;
@@ -764,7 +780,7 @@ public class WaveDriver {
     //Add's all the adjacencies for a block
     private void addAdjacencies(int originalBlockInt, BlockPos p){
 
-        System.out.println("Adding Adjacencies");
+        //System.out.println("Adding Adjacencies");
 
         //Wrap p + direction.
         BlockState newBlock;
@@ -858,10 +874,10 @@ public class WaveDriver {
         if((position.getX() >= minX && position.getX() <= maxX) &&
            (position.getY() >= minY && position.getY() <= maxY) &&
            (position.getZ() >= minZ && position.getZ() <= maxZ) ) {
-                System.out.println("Found " + position + " inside of matrix");
+                //System.out.println("Found " + position + " inside of matrix");
                 return true;
            } else {
-                System.out.println("Found " + position + " outside of matrix");
+                //System.out.println("Found " + position + " outside of matrix");
                 return false;
            }
     }
