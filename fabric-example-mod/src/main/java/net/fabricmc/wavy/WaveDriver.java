@@ -323,7 +323,7 @@ public class WaveDriver {
         //Read in the input data
         int j = buildAdjacencies();
 
-        //System.out.println(listOfSeenBlocks);
+        System.out.println(listOfSeenBlocks);
 
         if(j < 0){
             return j;
@@ -399,14 +399,31 @@ public class WaveDriver {
         System.out.println("\nRun Pos1: " + runPos1 + "\nRun Pos2: " + runPos2);
 
         System.out.println(collapsed.contains(originalRunPos1));
+
         
-/*      
+
+        //Setup backup copies of the two necessary, mutable changes
+        //HashMap<BlockPos, Vector<Integer>> backupCollapseMap = (HashMap<BlockPos, Vector<Integer>>) collapseMap.clone();
+        //HashSet<BlockPos> backupCollapsed = new HashSet<BlockPos>(collapsed);
+              
         //CollapseCorners();
 
         //System.out.println("Made it past Collapsing Corners");
 
-        int itr = 15000;
+        //Attempt an X number of iterations to try and find a valid configuration
+        //int itrLimit = 30;
+        //for(int i = 0; i < itrLimit; i++){
+            //System.out.println("Collapse Map Equality:" + collapseMap.equals(backupCollapseMap));
+            //collapseMap = (HashMap<BlockPos, Vector<Integer>>) backupCollapseMap.clone();
+
+            //System.out.println("Collapsed Equality: " + collapsed.equals(backupCollapsed));
+            //collapsed = new HashSet<BlockPos>(backupCollapsed);
+        
+        int itr = 10000;
         boolean done = false;
+        //boolean validConfig = true;
+
+        
         
         while(!done && itr > 0){
             itr--;
@@ -423,8 +440,14 @@ public class WaveDriver {
             if(collapsed.size() == collapseMap.keySet().size()){
                 done = true;
             }
-            
         }
+
+        System.out.println(collapseMap);
+
+            //if(validConfig){
+            //    break;
+            //}
+        //}
 
         System.out.println("Made it past the waavy step");
 
@@ -434,7 +457,7 @@ public class WaveDriver {
 
         runPos1 = originalRunPos1;
         runPos2 = originalRunPos2;
-*/
+
         return 1;
     }
 
@@ -569,16 +592,22 @@ public class WaveDriver {
         }
     }
 
+    //TODO This shit super broken
+    //Unable to find least entropic value because it uncludes [] arrays
     private BlockPos findLeastEntropy(){
 
         BlockPos ret = runPos1; //Position garunteed to be in the original map
         for(BlockPos b : collapseMap.keySet()){
             if(!collapsed.contains(b)){
-                if(collapseMap.get(b).size() <= collapseMap.get(ret).size()){
+                int size1 = collapseMap.get(b).size();
+                int size2 = collapseMap.get(ret).size();
+                if((size1 <= size2) && size1 != 0){
                     ret = b;
                 }
             }
         }
+
+        System.out.println("Found block " + ret + " with least entropy of " + collapseMap.get(ret));
 
         return ret;
     }
@@ -601,6 +630,12 @@ public class WaveDriver {
             }
             collapseMap.put(target, newAdj);
         }
+
+        // if(newAdj.size() == 0){
+        //     return false;
+        // } else {
+        //     return true;
+        // }
     }
 
     private BlockPos wrapBlockPos(BlockPos current) {
@@ -653,25 +688,45 @@ public class WaveDriver {
     }
     
     private void changeSurrounding(BlockPos current, boolean shouldWrap){
-
+        boolean ret = true;
         //Wrap current + direction
         //Change up 0
         handleSingleSurroundingChange(current.up(), current, 0, shouldWrap);
+        //if(!ret){
+        //    return false;
+        //}
 
         //Change DOwn 1
         handleSingleSurroundingChange(current.down(), current, 1, shouldWrap);
+        //if(!ret){
+        //    return false;
+        //}
 
         //CHange West 2
         handleSingleSurroundingChange(current.west(), current, 2, shouldWrap);
+        // if(!ret){
+        //     return false;
+        // }
 
         //Change east
         handleSingleSurroundingChange(current.east(), current, 3, shouldWrap);
+        // if(!ret){
+        //     return false;
+        // }
 
         //Change north
         handleSingleSurroundingChange(current.north(), current, 4, shouldWrap);
+        // if(!ret){
+        //     return false;
+        // }
         
         //change south
         handleSingleSurroundingChange(current.south(), current, 5, shouldWrap);
+        // if(!ret){
+        //     return false;
+        // }
+
+        //return ret;
         //System.out.println(collapseMap);
     }
 
@@ -728,8 +783,6 @@ public class WaveDriver {
         }
 
         blockToIntegerMap.put(Blocks.VOID_AIR.getDefaultState(), -1);
-
-        System.out.println(blockToIntegerMap);
 
         adj.put(-1, a);
 
