@@ -340,9 +340,9 @@ public class WaveDriver {
         return 1;
     }
 
-    public int secondStepWrapper(){
+    public int secondStepWrapper(int runs){
+        print("Running WFC with " + runs + " runs.");
         int ret = 0;
-        int runs = 30;
         for(int i = 0; i < runs; i++){
             ret = secondStepWFC();
         }

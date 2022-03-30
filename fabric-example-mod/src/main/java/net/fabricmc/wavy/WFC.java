@@ -5,18 +5,19 @@ import net.fabricmc.fabric.api.command.v1.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.item.v1.FabricItemSettings;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.command.CommandSource;
+import net.minecraft.command.argument.ArgumentTypes;
+import net.minecraft.command.argument.serialize.ArgumentSerializer;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.network.MessageType;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.text.LiteralText;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.registry.Registry;
+import static net.minecraft.server.command.CommandManager.argument;
 
 import java.io.IOException;
 
-import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.arguments.*;
-import com.mojang.brigadier.builder.*;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -91,7 +92,7 @@ public class WFC implements ModInitializer {
 				MinecraftClient mc = MinecraftClient.getInstance();
 				waveDriver.Mc(mc);
 
-				int ret = waveDriver.secondStepWrapper();
+				int ret = waveDriver.secondStepWrapper(30);
 				mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("Second WFC finished with value " + ret), mc.player.getUuid());
 				return 1;
 			}));
@@ -103,6 +104,21 @@ public class WFC implements ModInitializer {
 				mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("This command doesn't work yet"), mc.player.getUuid());
 				return 1;
 			}));
+		});
+
+		CommandRegistrationCallback.EVENT.register((dispatcher, dedicated) -> {
+			dispatcher.register(CommandManager.literal("runArgs")
+				.then(CommandManager.argument("runs", IntegerArgumentType.integer())
+					.executes(context -> {
+
+						MinecraftClient mc = MinecraftClient.getInstance();
+						waveDriver.Mc(mc);
+						int runs = IntegerArgumentType.getInteger(context, "runs");
+						int ret = waveDriver.secondStepWrapper(runs);
+						mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("Second WFC finished with value " + ret), mc.player.getUuid());
+
+						return 1;
+					})));
 		});
 
 		LOGGER.info("Hello Fabric world!");
