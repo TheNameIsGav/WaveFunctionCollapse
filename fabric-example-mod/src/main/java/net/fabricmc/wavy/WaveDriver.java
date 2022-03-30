@@ -13,6 +13,7 @@ import java.nio.file.Path;
 import java.util.*;
 
 import org.apache.commons.lang3.StringUtils;
+import org.lwjgl.system.CallbackI.B;
 
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.Block;
@@ -330,13 +331,29 @@ public class WaveDriver {
         }
 
         //System.out.println(blockToIntegerMap);
-        //System.out.println(adj);
+        System.out.println(adj);
 
         //System.out.println("Block to integer map \n" + blockToIntegerMap);
         //System.out.println("List of seen blocks \n" + listOfSeenBlocks);
 
         hasRunFirstStep = true;
         return 1;
+    }
+
+    public int secondStepWrapper(){
+        int ret = 0;
+        int runs = 30;
+        for(int i = 0; i < runs; i++){
+            ret = secondStepWFC();
+        }
+
+        if(ret == 1){
+            GenerateWorld();
+        } else {
+            print("Failed to find valid configuration in " + runs + " runs.");
+        }
+
+        return ret;
     }
 
     public int secondStepWFC(){
@@ -359,7 +376,7 @@ public class WaveDriver {
         }
 
         Vector<Integer> t = new Vector<Integer>(listOfSeenBlocks.keySet()); //Makes a list of all the integers of seen blocks
-        //System.out.println(t);
+        System.out.println(t);
         //Setup The Beginning Collapse Map
 
         //runPos1 = new BlockPos(0, 0, 0);
@@ -400,8 +417,6 @@ public class WaveDriver {
 
         System.out.println(collapsed.contains(originalRunPos1));
 
-        
-
         //Setup backup copies of the two necessary, mutable changes
         //HashMap<BlockPos, Vector<Integer>> backupCollapseMap = (HashMap<BlockPos, Vector<Integer>>) collapseMap.clone();
         //HashSet<BlockPos> backupCollapsed = new HashSet<BlockPos>(collapsed);
@@ -421,29 +436,36 @@ public class WaveDriver {
         
         int itr = 10000;
         boolean done = false;
+        boolean validConfig = true;
         //boolean validConfig = true;
-
-        
         
         while(!done && itr > 0){
             itr--;
-            
+            //System.out.println(collapsed.size());
+            if(collapsed.size() == collapseMap.keySet().size()){
+                done = true;
+                break;
+            }
+
             //Find lowest entropy to collapse
             BlockPos current = findLeastEntropy();
 
+            if(current == null){
+                validConfig = false;
+                break;
+            }
+
             //Collapse it
-            collapseNode(current);
+            if(!collapseNode(current)){
+                validConfig = false;
+                break;
+            }
 
             //Change the surrounding nodes
             changeSurrounding(current, SHOULDWRAP);
 
-            if(collapsed.size() == collapseMap.keySet().size()){
-                done = true;
-            }
+            //GenerateSingleBlock(current);
         }
-
-        System.out.println(collapseMap);
-
             //if(validConfig){
             //    break;
             //}
@@ -453,12 +475,21 @@ public class WaveDriver {
 
         RemoveEdgeBlocks();
 
-        GenerateWorld();
+        System.out.println(collapseMap);
 
         runPos1 = originalRunPos1;
         runPos2 = originalRunPos2;
 
-        return 1;
+        if(validConfig){
+            return 1;
+        } else {
+            return -4;
+        }
+    }
+
+    private void GenerateSingleBlock(BlockPos current){
+        //System.out.println("Generating single block at position " + current);
+        world.setBlockState(current, integerToBlockMap.get(collapseMap.get(current).get(0)), 1);
     }
 
     private void RemoveEdgeBlocks(){
@@ -592,22 +623,22 @@ public class WaveDriver {
         }
     }
 
-    //TODO This shit super broken
     //Unable to find least entropic value because it uncludes [] arrays
     private BlockPos findLeastEntropy(){
 
-        BlockPos ret = runPos1; //Position garunteed to be in the original map
+        BlockPos ret = null;
+
         for(BlockPos b : collapseMap.keySet()){
             if(!collapsed.contains(b)){
                 int size1 = collapseMap.get(b).size();
-                int size2 = collapseMap.get(ret).size();
+                int size2 = (ret == null) ? Integer.MAX_VALUE : collapseMap.get(ret).size();
                 if((size1 <= size2) && size1 != 0){
                     ret = b;
                 }
             }
         }
 
-        System.out.println("Found block " + ret + " with least entropy of " + collapseMap.get(ret));
+        //System.out.println("Found block " + ret + " with least entropy of " + collapseMap.get(ret));
 
         return ret;
     }
@@ -730,18 +761,17 @@ public class WaveDriver {
         //System.out.println(collapseMap);
     }
 
-    private void collapseNode(BlockPos blockPos){
+
+    //Returns true if it was able to collapse a node, and false if it was not
+    private boolean collapseNode(BlockPos blockPos){
 
         //Get adj's from that current block
         Vector<Integer> potential = collapseMap.get(blockPos);
         
 
         if(potential.size() == 0){
-            Vector<Integer> x = new Vector<Integer>();
-            //System.out.println(potential + " " + blockPos);
-            x.add(-1);
-            collapseMap.put(blockPos, x);
-            return;
+            System.out.println("Found no adjacency");
+            return false;
         }
 
         //Go find their weights
@@ -762,6 +792,7 @@ public class WaveDriver {
         //System.out.println("Adding " + myRandomItem + " at " + block);
         //Pick one
         collapseMap.put(blockPos, t);
+        return true;
     }
 
     //Builds Adjacency matrix and setups block to int conversion
