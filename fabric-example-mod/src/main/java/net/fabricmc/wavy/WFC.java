@@ -121,6 +121,13 @@ public class WFC implements ModInitializer {
 					})));
 		});
 
+		CommandRegistrationCallback.EVENT.register((dispatcher, dedicated) -> {
+			dispatcher.register(CommandManager.literal("collapsetest").executes(context -> {
+				waveDriver.testCollapseNode();
+				return 1;
+			}));
+		});
+
 		LOGGER.info("Hello Fabric world!");
 
 

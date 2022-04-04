@@ -345,6 +345,9 @@ public class WaveDriver {
         int ret = 0;
         for(int i = 0; i < runs; i++){
             ret = secondStepWFC();
+            if(ret == 1){
+                break;
+            }
         }
 
         if(ret == 1){
@@ -359,6 +362,7 @@ public class WaveDriver {
     public int secondStepWFC(){
         collapseMap = new HashMap<BlockPos, Vector<Integer>>();
         collapsed = new HashSet<BlockPos>();
+        listOfSeenBlocks.put(-1, 0);
 
         if(!hasRunFirstStep){
             print("It appears that you have not loaded up adjacencies");
@@ -383,10 +387,10 @@ public class WaveDriver {
         //runPos2 = new BlockPos(0, 0, 0);
 
         //Verify integrity of Add edges
-        System.out.println("Before Change \n Run Pos 1: " + runPos1 + "\nRun Pos 2: " + runPos2);
+        //System.out.println("Before Change \n Run Pos 1: " + runPos1 + "\nRun Pos 2: " + runPos2);
         AddEdges();
-        System.out.println("After Change \n Run Pos 1: " + runPos1 + "\n Run Pos 2: " + runPos2);
-        System.out.println("\n Should match original runPositions \n Original Run Pos1: " + originalRunPos1 + "\n Original Run Pos2: " + originalRunPos2);
+        // System.out.println("After Change \n Run Pos 1: " + runPos1 + "\n Run Pos 2: " + runPos2);
+        // System.out.println("\n Should match original runPositions \n Original Run Pos1: " + originalRunPos1 + "\n Original Run Pos2: " + originalRunPos2);
 
        //Verify Integrity of Directions
         int xDist = Math.abs(runPos1.getX() - runPos2.getX());
@@ -405,17 +409,17 @@ public class WaveDriver {
             }
         }
 
-        System.out.println("Size of CollapseMap before Manipulate Edges: " + collapseMap.size());
-        System.out.println("Size of Collapsed Nodes before Manipulate Edges: " + collapsed.size());
-        System.out.println("\nRun Pos1: " + runPos1 + "\nRun Pos2: " + runPos2);
+        // System.out.println("Size of CollapseMap before Manipulate Edges: " + collapseMap.size());
+        // System.out.println("Size of Collapsed Nodes before Manipulate Edges: " + collapsed.size());
+        // System.out.println("\nRun Pos1: " + runPos1 + "\nRun Pos2: " + runPos2);
         
         ManipulateEdges();
 
-        System.out.println("Size of CollapseMap after Manipulate Edges: " + collapseMap.size());
-        System.out.println("Size of Collapsed Nodes after Manipulate Edges: " + collapsed.size());
-        System.out.println("\nRun Pos1: " + runPos1 + "\nRun Pos2: " + runPos2);
+        // System.out.println("Size of CollapseMap after Manipulate Edges: " + collapseMap.size());
+        // System.out.println("Size of Collapsed Nodes after Manipulate Edges: " + collapsed.size());
+        // System.out.println("\nRun Pos1: " + runPos1 + "\nRun Pos2: " + runPos2);
 
-        System.out.println(collapsed.contains(originalRunPos1));
+        // System.out.println(collapsed.contains(originalRunPos1));
 
         //Setup backup copies of the two necessary, mutable changes
         //HashMap<BlockPos, Vector<Integer>> backupCollapseMap = (HashMap<BlockPos, Vector<Integer>>) collapseMap.clone();
@@ -475,7 +479,7 @@ public class WaveDriver {
 
         RemoveEdgeBlocks();
 
-        System.out.println(collapseMap);
+        //System.out.println(collapseMap);
 
         runPos1 = originalRunPos1;
         runPos2 = originalRunPos2;
@@ -762,13 +766,47 @@ public class WaveDriver {
     }
 
 
+    public int testCollapseNode(){
+        Vector<Integer> holder = collapseMap.get(runPos1);
+
+        System.out.println("Attempting to collapse a single node! Before collapse potentials are "  + collapseMap.get(runPos1));
+
+        collapseNode(runPos1);
+
+        System.out.println("After collapse: " + collapseMap.get(runPos1));
+
+        collapseMap.put(runPos1, holder);
+        collapsed.remove(runPos1);
+
+        return 0;
+    }
+
     //Returns true if it was able to collapse a node, and false if it was not
     private boolean collapseNode(BlockPos blockPos){
 
         //Get adj's from that current block
         Vector<Integer> potential = collapseMap.get(blockPos);
-        
+        Vector<Integer> pickVec = new Vector<Integer>();
 
+        for(int i : potential){
+            for(int j = 0; j < listOfSeenBlocks.get(i); j++){
+                pickVec.add(i);
+            }
+        }
+        
+        int picked = (int) (Math.random() * pickVec.size());
+
+        // System.out.println("Pick Vector: " + pickVec);
+        // System.out.println("Index: " + picked);
+        // System.out.println(pickVec.get(picked));
+
+        Vector<Integer> t = new Vector<Integer>();
+        t.add(pickVec.get(picked));
+        collapsed.add(blockPos);
+        collapseMap.put(blockPos, t);
+        return true;
+        
+        /*
         if(potential.size() == 0){
             System.out.println("Found no adjacency");
             return false;
@@ -781,7 +819,7 @@ public class WaveDriver {
         }
 
         int idx = 0;
-        for (double r = Math.random() * sum; idx < potential.size() - 1; ++idx) {
+        for (double r = Math.random() * sum; idx < potential.size() - 1; idx++) {
             r -= potential.get(idx);
             if (r <= 0.0) break;
         }
@@ -791,8 +829,7 @@ public class WaveDriver {
         collapsed.add(blockPos);
         //System.out.println("Adding " + myRandomItem + " at " + block);
         //Pick one
-        collapseMap.put(blockPos, t);
-        return true;
+        collapseMap.put(blockPos, t);*/
     }
 
     //Builds Adjacency matrix and setups block to int conversion
@@ -814,6 +851,7 @@ public class WaveDriver {
         }
 
         blockToIntegerMap.put(Blocks.VOID_AIR.getDefaultState(), -1);
+        
 
         adj.put(-1, a);
 
@@ -856,8 +894,9 @@ public class WaveDriver {
 
         //System.out.println(adj);
         //System.out.println(integerToBlockMap);
+        
         //System.out.println(listOfSeenBlocks);
-
+        
         return 0;
     }
 
