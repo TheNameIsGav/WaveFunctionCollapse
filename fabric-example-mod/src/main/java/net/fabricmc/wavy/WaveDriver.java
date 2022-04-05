@@ -381,6 +381,7 @@ public class WaveDriver {
 
         Vector<Integer> t = new Vector<Integer>(listOfSeenBlocks.keySet()); //Makes a list of all the integers of seen blocks
         System.out.println(t);
+        System.out.println(blockToIntegerMap);
         //Setup The Beginning Collapse Map
 
         //runPos1 = new BlockPos(0, 0, 0);
@@ -409,11 +410,15 @@ public class WaveDriver {
             }
         }
 
+        System.out.println("Made it past Adding edges and adding to collapse map");
+
         // System.out.println("Size of CollapseMap before Manipulate Edges: " + collapseMap.size());
         // System.out.println("Size of Collapsed Nodes before Manipulate Edges: " + collapsed.size());
         // System.out.println("\nRun Pos1: " + runPos1 + "\nRun Pos2: " + runPos2);
         
         ManipulateEdges();
+
+        System.out.println("Made it past manipulating edges");
 
         // System.out.println("Size of CollapseMap after Manipulate Edges: " + collapseMap.size());
         // System.out.println("Size of Collapsed Nodes after Manipulate Edges: " + collapsed.size());
@@ -454,6 +459,8 @@ public class WaveDriver {
             //Find lowest entropy to collapse
             BlockPos current = findLeastEntropy();
 
+            //System.out.println("Test 1");
+
             if(current == null){
                 validConfig = false;
                 break;
@@ -465,8 +472,12 @@ public class WaveDriver {
                 break;
             }
 
+            //System.out.println("Test 2");
+
             //Change the surrounding nodes
             changeSurrounding(current, SHOULDWRAP);
+
+            //System.out.println("Test 3");
 
             //GenerateSingleBlock(current);
         }
@@ -788,22 +799,36 @@ public class WaveDriver {
         Vector<Integer> potential = collapseMap.get(blockPos);
         Vector<Integer> pickVec = new Vector<Integer>();
 
+        if(potential.contains(-1)){
+            return false;
+        }
+
         for(int i : potential){
             for(int j = 0; j < listOfSeenBlocks.get(i); j++){
                 pickVec.add(i);
             }
         }
+
+        //System.out.println("Test 1.1: " + potential);
         
         int picked = (int) (Math.random() * pickVec.size());
 
-        // System.out.println("Pick Vector: " + pickVec);
-        // System.out.println("Index: " + picked);
-        // System.out.println(pickVec.get(picked));
+        //System.out.println("Test 1.2");
+
+        //System.out.println("Pick Vector: " + pickVec);
+        //System.out.println("Index: " + picked);
+        //System.out.println(pickVec.get(picked));
 
         Vector<Integer> t = new Vector<Integer>();
         t.add(pickVec.get(picked));
+
+        //System.out.println("Test 1.3");
+
         collapsed.add(blockPos);
         collapseMap.put(blockPos, t);
+
+        System.out.println("Test 1.4");
+
         return true;
         
         /*
