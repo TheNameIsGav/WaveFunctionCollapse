@@ -27,6 +27,7 @@ import net.minecraft.state.property.Properties;
 import net.minecraft.text.LiteralText;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
 
 
@@ -339,6 +340,177 @@ public class WaveDriver {
         hasRunFirstStep = true;
         return 1;
     }
+
+    
+
+    //Start Chunk Implementation
+    public class WFCChunk {
+        int _id;
+
+        Vector<Integer> chunkAdjs = new Vector<Integer>();
+
+        WFCChunk() {
+            _id = 0;
+        }
+
+        WFCChunk(int id, Vector<Integer> adjs){
+            chunkAdjs = adjs;
+            _id = id;
+        }
+    }
+
+
+    //Setting up the default new structures
+    int chunkSize = 1;
+    //integer to block map equivalent
+    HashMap<Integer, WFCChunk> integerToChunkMap = new HashMap<Integer, WFCChunk>();
+
+    //Block to integer map equivalent
+    HashMap<WFCChunk, Integer> chunkToIntegerMap = new HashMap<WFCChunk, Integer>();
+
+    //list of seen blocks equivalent
+    HashMap<Integer, Integer> listOfSeenChunks = new HashMap<Integer, Integer> ();
+    //current index is 0;
+
+    //Stores the blocks that we've seen in chunks
+    HashMap<BlockState, Integer> seenBlocksToInt = new HashMap<BlockState, Integer>();
+    HashMap<Integer, BlockState> seenIntToBlock = new HashMap<Integer, BlockState>();
+    int blockInt = 0;
+    //Uses normal adj list
+
+    public int firstStepWFCChunks(){
+        if(pos1 == null || pos2 == null){
+            print("Failed to validate Position 1 or Position 2" + "\n Position 1 is " + pos1 + "\n Position 2 is " + pos2);
+            return -1;
+        }
+        
+        if(world == null){
+            print("Failed to get world correctly");
+            return -3;
+        }
+
+        //Reset all Data Structures
+        integerToChunkMap = new HashMap<Integer, WFCChunk>();
+        chunkToIntegerMap = new HashMap<WFCChunk, Integer> ();
+        listOfSeenChunks = new HashMap<Integer, Integer> ();
+        seenBlocksToInt = new HashMap<BlockState, Integer> ();
+        seenIntToBlock = new HashMap<Integer, BlockState> ();
+        currentIndex = 0;
+        blockInt = 0;
+
+        //Read in Input Data with chunk size
+        int j = buildAdjacenciesChunks();
+
+        return 1;
+    }
+
+    private int buildAdjacenciesChunks(){
+
+        //Setup minimum and maximum runPositions
+        BlockPos min = new BlockPos(pos1.getX() < pos2.getX() ? pos1.getX() : pos2.getX(), 
+                                    pos1.getY() < pos2.getY() ? pos1.getY() : pos2.getY(), 
+                                    pos1.getZ() < pos2.getZ() ? pos1.getZ() : pos2.getZ());
+
+        BlockPos max = new BlockPos(pos1.getX() > pos2.getX() ? pos1.getX() : pos2.getX(), 
+                                    pos1.getY() > pos2.getY() ? pos1.getY() : pos2.getY(), 
+                                    pos1.getZ() > pos2.getZ() ? pos1.getZ() : pos2.getZ());
+
+        //Add all singletone blocks
+        validateAllBlocks(min, max);
+
+        //TODO go from 0,0,0 to max - chunkSize to account for the edges
+        //For each position, assume top left and build from there
+        for(int x = min.getX(); x < max.getX(); x++){
+            for(int y = min.getY(); y < max.getX(); y++){
+                for(int z = min.getZ(); z < max.getZ(); z++){
+                    //Figure out how to get the top left block, and then extend by chunk amt
+                    addChunk(x, y, z);
+                }
+            }
+        }
+
+        //Add Adjancecies
+
+        return 1;
+    }
+
+    //Adds all singleton blocks within the input grid for use within chunk adjacencies
+    private void validateAllBlocks(BlockPos min, BlockPos max) {
+        for(int x = min.getX(); x < max.getX(); x++){
+            for(int y = min.getY(); y < max.getX(); y++){
+                for(int z = min.getZ(); z < max.getZ(); z++){
+                    
+                    seenIntToBlock.put(blockInt, world.getBlockState(new BlockPos(x, y, z)));
+                    seenBlocksToInt.put(seenIntToBlock.get(blockInt), blockInt);
+                    blockInt++;
+                }
+            }
+        }
+    }
+
+    //Given the top left corner of a block, extends to read in blocks in the size of the chunk
+    private WFCChunk addChunk(int x, int y, int z){
+        WFCChunk ret = new WFCChunk();
+
+        //Actually read in the values from the set
+        Vector<Integer> a = readChunkByChunkSize(x, y, z);
+        ret.chunkAdjs = a;
+
+        //Check to see if we have seen this particular arrangement of chunk before
+        int flag = checkChunkSeenBefore(ret);
+        if(flag == -2){ //This is a new chunk
+            ret._id = currentIndex;
+            currentIndex++;
+            listOfSeenChunks.put(ret._id, 1);
+
+        } else { //This is a seen chunk, so increase amt by 1
+            listOfSeenChunks.put(flag, listOfSeenChunks.get(flag) + 1);
+        }
+
+        return ret;
+    }
+
+    private Vector<Integer> readChunkByChunkSize(int c, int u, int v){
+        Vector<Integer> a = new Vector<Integer>();
+
+        for(int x = 0; x < chunkSize; x++){
+            for(int y = 0; y < chunkSize; y++){
+                for(int z = 0; z < chunkSize; z++){
+                    BlockPos curr = new BlockPos(c + x, u + y, z + v);
+
+                    //If our position is inside the grid
+                    if(evaulatePosition(curr)){
+                        //Adds that int to our array
+                        a.add(seenBlocksToInt.get(world.getBlockState(curr)));
+                    } else {
+                        a.add(-1);
+                    }
+                }
+            }
+        }
+
+        return a;
+    }
+
+    //Checks a given chunk to see if it's adjacencies match another in the set
+    //If they don't match, pass back -2 flag
+    //If do match, pass back index of that chunk
+    private Integer checkChunkSeenBefore(WFCChunk inc){
+        Set<WFCChunk> setOfChunks = chunkToIntegerMap.keySet();
+        Iterator<WFCChunk> itr = setOfChunks.iterator();
+
+        while(itr.hasNext()){
+            WFCChunk curr = itr.next();
+            Vector<Integer> currAdjs = curr.chunkAdjs;
+
+            if(currAdjs == inc.chunkAdjs){
+                return chunkToIntegerMap.get(curr);
+            }
+        }
+
+        return -2;
+    }
+
 
     public int secondStepWrapper(int runs){
         print("Running WFC with " + runs + " runs.");
