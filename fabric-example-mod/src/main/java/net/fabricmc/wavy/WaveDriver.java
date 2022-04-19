@@ -13,7 +13,6 @@ import java.nio.file.Path;
 import java.util.*;
 
 import org.apache.commons.lang3.StringUtils;
-import org.lwjgl.system.CallbackI.B;
 
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.Block;
@@ -24,10 +23,10 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.util.math.Vector3d;
 import net.minecraft.network.MessageType;
 import net.minecraft.state.property.Properties;
+import net.minecraft.test.GameTestException;
 import net.minecraft.text.LiteralText;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
 
 
@@ -357,6 +356,11 @@ public class WaveDriver {
             _chunkAdjs = adjs;
             _id = id;
         }
+
+        @Override
+        public String toString() {
+            return this._chunkAdjs.toString();
+        }
     }
 
 
@@ -377,6 +381,8 @@ public class WaveDriver {
     HashMap<Integer, BlockState> seenIntToBlock = new HashMap<Integer, BlockState>();
     int blockInt = 0;
     //Uses normal adj list
+
+    boolean _DEBUG = true;
 
     public int firstStepWFCChunks(){
         if(pos1 == null || pos2 == null){
@@ -404,27 +410,41 @@ public class WaveDriver {
         return 1;
     }
 
+    BlockPos min;
+    BlockPos max;
+
     private int buildAdjacenciesChunks(){
 
         //Setup minimum and maximum runPositions
-        BlockPos min = new BlockPos(pos1.getX() < pos2.getX() ? pos1.getX() : pos2.getX(), 
+        min = new BlockPos(pos1.getX() < pos2.getX() ? pos1.getX() : pos2.getX(), 
                                     pos1.getY() < pos2.getY() ? pos1.getY() : pos2.getY(), 
                                     pos1.getZ() < pos2.getZ() ? pos1.getZ() : pos2.getZ());
 
-        BlockPos max = new BlockPos(pos1.getX() > pos2.getX() ? pos1.getX() : pos2.getX(), 
+        max = new BlockPos(pos1.getX() > pos2.getX() ? pos1.getX() : pos2.getX(), 
                                     pos1.getY() > pos2.getY() ? pos1.getY() : pos2.getY(), 
                                     pos1.getZ() > pos2.getZ() ? pos1.getZ() : pos2.getZ());
 
+        System.out.println("\nMin: " + min + " \nMax: " + max);
+
         //Add all singletone blocks
-        validateAllBlocks(min, max);
+        validateAllBlocks(min, max); //Verified
+        
+        if(_DEBUG == true && false){
+            System.out.println("Validating all blocks in the input set");
+            System.out.println("List of seen blocks to int" + seenBlocksToInt);
+            System.out.println("List of seen ints to blocks " + seenIntToBlock);
+        }
 
         //For each position, assume top left and build from there
-        for(int x = max.getX(); x >= min.getX() + chunkSize; x--){
-            for(int y = max.getY(); y >= min.getX() + chunkSize; y--){
-                for(int z = max.getZ(); z >= min.getZ() + chunkSize; z--){
+        for(int x = max.getX(); x >= min.getX() + chunkSize-1; x--){
+            for(int y = max.getY(); y >= min.getY() + chunkSize-1; y--){
+                for(int z = max.getZ(); z >= min.getZ() + chunkSize-1; z--){
+                    System.out.println("Chunk Start Pos: " + x + ", " + y + ", " + z);
                     WFCChunk newChunk = addChunk(x, y, z);
 
+                    System.out.println("Chunk: " + newChunk);
 
+                    
                     //Add Adjancecies
                     Vector<Vector<Integer>> newVec = new Vector<Vector<Integer>>();
                     for(int i = 0; i < 6; i++){
@@ -432,21 +452,42 @@ public class WaveDriver {
                     }
 
                     adj.put(newChunk._id, newVec);
-
-                    AddChunkAdjacencies(newChunk._id, new BlockPos(x, y, z), max, min);
+                    integerToChunkMap.put(newChunk._id, newChunk);
+                    chunkToIntegerMap.put(newChunk, newChunk._id);
+                    /*
+                    AddChunkAdjacencies(newChunk._id, new BlockPos(x, y, z), max, min);*/
                 }
             }
         }
 
-       
+        System.out.println("Integer to Chunk Map: " + integerToChunkMap);
+        System.out.println("Adjs: " + adj);
+        
 
         return 1;
+    }
+
+    private boolean evaulatePositionRework(BlockPos test){
+
+        if(test.getX() > max.getX() || test.getX() < min.getX()){
+            return false;
+        }
+
+        if(test.getY() > max.getY() || test.getY() < min.getY()){
+            return false;
+        }
+
+        if(test.getZ() > max.getZ() || test.getZ() < min.getZ()){
+            return false;
+        }
+
+        return true;
     }
 
     private void AddChunkAdjacencies(int id, BlockPos pos, BlockPos max, BlockPos min){
         BlockPos newPos = pos.up();
         if(!evaulatePosition(newPos)){ 
-            addChunkEdgeAdjacency(id, 0);
+            addChunkEdgeAdjacency(id, 0, 1);
         } else {
             addChunkAdjacency(id, 0, newPos);
         }
@@ -455,7 +496,7 @@ public class WaveDriver {
         //If we are trying to read something that would have blocks inside of it that go out of the bounds of the grid
         newPos = pos.down();
         if(testChunkNearEdge(pos, max, min)){
-            addChunkEdgeAdjacency(id, 1);
+            addChunkEdgeAdjacency(id, 1, 0);
         } else {
             addChunkAdjacency(id, 1, newPos);
         }
@@ -463,7 +504,7 @@ public class WaveDriver {
 
         newPos = pos.west();
         if(!evaulatePosition(newPos)){
-            addChunkEdgeAdjacency(id, 2);
+            addChunkEdgeAdjacency(id, 2, 3);
         } else {
             addChunkAdjacency(id, 2, newPos);
         }
@@ -472,7 +513,7 @@ public class WaveDriver {
         //If we are trying to read something that would have blocks inside of it that go out of the bounds of the grid
         newPos = pos.east();
         if(testChunkNearEdge(pos, max, min)) {
-            addChunkEdgeAdjacency(id, 3);
+            addChunkEdgeAdjacency(id, 3, 2);
         } else {
             addChunkAdjacency(id, 3, newPos);
         }
@@ -480,7 +521,7 @@ public class WaveDriver {
 
         newPos = pos.north();
         if(evaulatePosition(newPos)){
-            addChunkEdgeAdjacency(id, 4);
+            addChunkEdgeAdjacency(id, 4, 5);
         } else {
             addChunkAdjacency(id, 4, newPos);
         }
@@ -489,19 +530,27 @@ public class WaveDriver {
         //If we are trying to read something that would have blocks inside of it that go out of the bounds of the grid
         newPos = pos.south();
         if(testChunkNearEdge(pos, max, min)) {
-            addChunkEdgeAdjacency(id, 5);
+            addChunkEdgeAdjacency(id, 5, 4);
         } else {
             addChunkAdjacency(id, 5, newPos);
         }
     }
 
-    private void addChunkEdgeAdjacency(int id, int direction){
+    //Add chunk adjacency and then edge adjacency in the opposite direction
+    private void addChunkEdgeAdjacency(int id, int direction, int opposite){
         Vector<Integer> prevAdj = adj.get(id).get(direction);
         prevAdj.add(-1);
         LinkedHashSet<Integer> hashSet = new LinkedHashSet<>(prevAdj);
         prevAdj.clear();
         prevAdj.addAll(hashSet);
         adj.get(id).set(direction, prevAdj);
+
+        prevAdj = adj.get(-1).get(opposite);
+        prevAdj.add(id);
+        hashSet = new LinkedHashSet<>(prevAdj);
+        prevAdj.clear();
+        prevAdj.addAll(hashSet);
+        adj.get(-1).set(opposite, prevAdj);
     }
 
     private void addChunkAdjacency(int id, int direction, BlockPos newPos){
@@ -531,13 +580,35 @@ public class WaveDriver {
     //Adds all singleton blocks within the input grid for use within chunk adjacencies
     //This doesn't need chunk size adjustment because its for singletons
     private void validateAllBlocks(BlockPos min, BlockPos max) {
-        for(int x = min.getX(); x < max.getX(); x++){
-            for(int y = min.getY(); y < max.getX(); y++){
-                for(int z = min.getZ(); z < max.getZ(); z++){
+
+        if(_DEBUG == true && false){
+            System.out.println("Max: " + max);
+            System.out.println("Min " + min);
+
+            System.out.println("MaxX: " + max.getX());
+            System.out.println("MinX: " + min.getX());
+
+            System.out.println("MaxY: " + max.getY());
+            System.out.println("MinY: " + min.getY());
+
+            System.out.println("MaxZ: " + max.getZ());
+            System.out.println("MinZ: " + min.getZ());
+        }
+
+        for(int x = min.getX(); x <= max.getX(); x++){
+            //System.out.println("X: " + x);
+            for(int y = min.getY(); y <= max.getY(); y++){
+                //System.out.println("Y: " + y);
+                for(int z = min.getZ(); z <= max.getZ(); z++){
+
+                    BlockPos p = new BlockPos(x, y, z);
+                    //System.out.println("Adding block: " + p);
                     
-                    seenIntToBlock.put(blockInt, world.getBlockState(new BlockPos(x, y, z)));
-                    seenBlocksToInt.put(seenIntToBlock.get(blockInt), blockInt);
-                    blockInt++;
+                    if(!seenBlocksToInt.keySet().contains(world.getBlockState(p))){
+                        seenIntToBlock.put(blockInt, world.getBlockState(p));
+                        seenBlocksToInt.put(seenIntToBlock.get(blockInt), blockInt);
+                        blockInt++;
+                    }
                 }
             }
         }
@@ -557,9 +628,10 @@ public class WaveDriver {
             ret._id = currentIndex;
             currentIndex++;
             listOfSeenChunks.put(ret._id, 1);
-
+            System.out.println("Found new chunk with values " + ret);
         } else { //This is a seen chunk, so increase amt by 1
             listOfSeenChunks.put(flag, listOfSeenChunks.get(flag) + 1);
+            System.out.println("Found old chunk with values " + ret);
         }
 
         return ret;
@@ -572,10 +644,11 @@ public class WaveDriver {
         for(int x = 0; x < chunkSize; x++){
             for(int y = 0; y < chunkSize; y++){
                 for(int z = 0; z < chunkSize; z++){
-                    BlockPos curr = new BlockPos(c - x, u - y, z - v);
+                    BlockPos curr = new BlockPos(c - x, u - y, v - z);
+                    System.out.println("Printing current position inside readChunkByChunkSize: " + curr);
 
                     //If our position is inside the grid
-                    if(evaulatePosition(curr)){
+                    if(evaulatePositionRework(curr)){
                         //Adds that int to our array
                         a.add(seenBlocksToInt.get(world.getBlockState(curr)));
                     } else {
@@ -585,7 +658,6 @@ public class WaveDriver {
                 }
             }
         }
-
         return a;
     }
 
@@ -599,7 +671,8 @@ public class WaveDriver {
         while(itr.hasNext()){
             WFCChunk curr = itr.next();
             Vector<Integer> currAdjs = curr._chunkAdjs;
-
+            System.out.println("Comparing current adj's of " + currAdjs + " with incoming " + inc._chunkAdjs);
+            //TODO
             if(currAdjs == inc._chunkAdjs){
                 return chunkToIntegerMap.get(curr);
             }

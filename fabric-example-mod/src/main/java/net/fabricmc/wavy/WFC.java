@@ -4,16 +4,12 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v1.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.item.v1.FabricItemSettings;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.command.CommandSource;
-import net.minecraft.command.argument.ArgumentTypes;
-import net.minecraft.command.argument.serialize.ArgumentSerializer;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.network.MessageType;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.text.LiteralText;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.registry.Registry;
-import static net.minecraft.server.command.CommandManager.argument;
 
 import java.io.IOException;
 
@@ -51,7 +47,8 @@ public class WFC implements ModInitializer {
 				//Setup the initial requirements for the Wave Driving function
 				waveDriver.Constraint(125);
 				waveDriver.Mc(mc);
-				int ret = waveDriver.firstStepWFC();
+				//int ret = waveDriver.firstStepWFC();
+				int ret = waveDriver.firstStepWFCChunks();
 				mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("First WFC finished with value " + ret), mc.player.getUuid());
 				return 1;
 			}));
