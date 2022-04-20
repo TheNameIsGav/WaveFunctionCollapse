@@ -23,7 +23,6 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.util.math.Vector3d;
 import net.minecraft.network.MessageType;
 import net.minecraft.state.property.Properties;
-import net.minecraft.test.GameTestException;
 import net.minecraft.text.LiteralText;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
@@ -401,8 +400,12 @@ public class WaveDriver {
         listOfSeenChunks = new HashMap<Integer, Integer> ();
         seenBlocksToInt = new HashMap<BlockState, Integer> ();
         seenIntToBlock = new HashMap<Integer, BlockState> ();
+        adj = new HashMap<Integer, Vector<Vector<Integer>>>();
         currentIndex = 0;
         blockInt = 0;
+
+
+
 
         //Read in Input Data with chunk size
         int j = buildAdjacenciesChunks();
@@ -428,6 +431,13 @@ public class WaveDriver {
 
         //Add all singletone blocks
         validateAllBlocks(min, max); //Verified
+
+        //Add edge
+        Vector<Vector<Integer>> a = new Vector<Vector<Integer>>();
+        for(int i = 0; i < 6; i++){
+            a.add(new Vector<Integer>());
+        }
+        adj.put(-1, a);
         
         if(_DEBUG == true && false){
             System.out.println("Validating all blocks in the input set");
@@ -439,10 +449,10 @@ public class WaveDriver {
         for(int x = max.getX(); x >= min.getX() + chunkSize-1; x--){
             for(int y = max.getY(); y >= min.getY() + chunkSize-1; y--){
                 for(int z = max.getZ(); z >= min.getZ() + chunkSize-1; z--){
-                    System.out.println("Chunk Start Pos: " + x + ", " + y + ", " + z);
-                    WFCChunk newChunk = addChunk(x, y, z);
+                    //System.out.println("Chunk Start Pos: " + x + ", " + y + ", " + z);
+                    WFCChunk newChunk = addChunk(x, y, z); //Validated with single chunk size
 
-                    System.out.println("Chunk: " + newChunk);
+                    //System.out.println("Chunk: " + newChunk);
 
                     
                     //Add Adjancecies
@@ -454,12 +464,13 @@ public class WaveDriver {
                     adj.put(newChunk._id, newVec);
                     integerToChunkMap.put(newChunk._id, newChunk);
                     chunkToIntegerMap.put(newChunk, newChunk._id);
-                    /*
-                    AddChunkAdjacencies(newChunk._id, new BlockPos(x, y, z), max, min);*/
+                    
+                    AddChunkAdjacencies(newChunk._id, new BlockPos(x, y, z));
                 }
             }
         }
 
+        System.out.println("Singleton blocks in Grid: " + seenBlocksToInt);
         System.out.println("Integer to Chunk Map: " + integerToChunkMap);
         System.out.println("Adjs: " + adj);
         
@@ -484,56 +495,105 @@ public class WaveDriver {
         return true;
     }
 
-    private void AddChunkAdjacencies(int id, BlockPos pos, BlockPos max, BlockPos min){
-        BlockPos newPos = pos.up();
-        if(!evaulatePosition(newPos)){ 
-            addChunkEdgeAdjacency(id, 0, 1);
-        } else {
-            addChunkAdjacency(id, 0, newPos);
-        }
+    //Modify these methods - I never get to a blockposition that cannot be read in it's entirety, so I just need to check if it's got an edge
 
+    //TODO down, west, and north doesn't work
+    private void AddChunkAdjacencies(int id, BlockPos pos){
 
-        //If we are trying to read something that would have blocks inside of it that go out of the bounds of the grid
-        newPos = pos.down();
-        if(testChunkNearEdge(pos, max, min)){
-            addChunkEdgeAdjacency(id, 1, 0);
-        } else {
-            addChunkAdjacency(id, 1, newPos);
-        }
+        /*
+            Up - 0, Down - 1
+            West - 2, East - 3
+            North - 4, South - 5
+        */
 
-
-        newPos = pos.west();
-        if(!evaulatePosition(newPos)){
+        //Checking the 3 min-chunk borders
+        Vector3d minBorders = chunkIsBorderingEdgeMin(pos);
+        if(minBorders.x == 1){ //We have a westward edge (2)
             addChunkEdgeAdjacency(id, 2, 3);
-        } else {
-            addChunkAdjacency(id, 2, newPos);
+        } else { //Normal
+            addChunkAdjacency(id, 2, pos.west());
         }
 
+        if(minBorders.y == 1) { //We have a down edge (1) 
+            addChunkEdgeAdjacency(id, 1, 0);
+        } else { //Normal
+            addChunkAdjacency(id, 1, pos.down());
+        }
 
-        //If we are trying to read something that would have blocks inside of it that go out of the bounds of the grid
-        newPos = pos.east();
-        if(testChunkNearEdge(pos, max, min)) {
+        if(minBorders.z == 1){ //We have a northward edge (4)
+            addChunkEdgeAdjacency(id, 4, 5);
+        } else { //Normal
+            addChunkAdjacency(id, 4, pos.north());
+        }
+
+        //Checking the 3 max bordesr
+        Vector3d maxBorders = chunkIsBorderingEdgeMax(pos);
+
+        if(maxBorders.x == 1){ //We have a Eastward Edge (3)
             addChunkEdgeAdjacency(id, 3, 2);
         } else {
-            addChunkAdjacency(id, 3, newPos);
+            addChunkAdjacency(id, 3, pos.east());
         }
 
-
-        newPos = pos.north();
-        if(evaulatePosition(newPos)){
-            addChunkEdgeAdjacency(id, 4, 5);
+        if(maxBorders.y == 1){ //We have an up edge (0)
+            addChunkEdgeAdjacency(id, 0, 1);
         } else {
-            addChunkAdjacency(id, 4, newPos);
+            addChunkAdjacency(id, 0, pos.up());
         }
 
-
-        //If we are trying to read something that would have blocks inside of it that go out of the bounds of the grid
-        newPos = pos.south();
-        if(testChunkNearEdge(pos, max, min)) {
+        if(maxBorders.z == 1) {//We have a Southern Edge (5)
             addChunkEdgeAdjacency(id, 5, 4);
         } else {
-            addChunkAdjacency(id, 5, newPos);
+            addChunkAdjacency(id, 5, pos.south());
         }
+    }
+
+    private Vector3d chunkIsBorderingEdgeMax(BlockPos curr) {
+        int xThreshold = max.getX();
+        int yThreshold = max.getY();
+        int zThreshold = max.getZ();
+
+        Vector3d ret = new Vector3d(0,0, 0);
+
+        if(curr.getX() == xThreshold){
+            ret.x = 1;
+        }
+
+        if(curr.getY() == yThreshold){
+            ret.y = 1;
+        }
+
+        if(curr.getZ() == zThreshold){
+            ret.z = 1;
+        }
+    
+        return ret;
+    }
+
+    //If the block position that I am currently on is equal to x, y, or z chunk thresholds, return the axis to add edge adjacency
+    //returns a vector of axis that border
+
+    //TODO down, west, and north doesn't work
+    private Vector3d chunkIsBorderingEdgeMin(BlockPos curr){
+        int xThreshold = min.getX() + chunkSize - 1;
+        int yThreshold = min.getY() + chunkSize - 1;
+        int zThreshold = min.getZ() + chunkSize - 1;
+
+        Vector3d ret = new Vector3d(0,0, 0);
+
+        if(curr.getX() == xThreshold){
+            ret.x = 1;
+        }
+
+        if(curr.getY() == yThreshold){
+            ret.y = 1;
+        }
+
+        if(curr.getZ() == zThreshold){
+            ret.z = 1;
+        }
+    
+        return ret;
     }
 
     //Add chunk adjacency and then edge adjacency in the opposite direction
@@ -558,23 +618,6 @@ public class WaveDriver {
         Vector<Vector<Integer>> originalAdjs = adj.get(id);
         originalAdjs.get(direction).add(newChunk._id);
         adj.put(id, originalAdjs);
-    }
-
-    //Returns true if the chunk is "near" an edge, I.E. it has an edge adjacency
-    private boolean testChunkNearEdge(BlockPos pos, BlockPos max, BlockPos min){
-
-        if(pos.getX() < min.getX() + chunkSize){
-            return false;
-        }
-
-        if(pos.getY() < min.getY() + chunkSize){
-            return false;
-        }
-
-        if(pos.getZ() < min.getZ() + chunkSize){
-            return false;
-        }
-        return true;
     }
 
     //Adds all singleton blocks within the input grid for use within chunk adjacencies
@@ -630,6 +673,7 @@ public class WaveDriver {
             listOfSeenChunks.put(ret._id, 1);
             System.out.println("Found new chunk with values " + ret);
         } else { //This is a seen chunk, so increase amt by 1
+            ret._id = flag;
             listOfSeenChunks.put(flag, listOfSeenChunks.get(flag) + 1);
             System.out.println("Found old chunk with values " + ret);
         }
@@ -645,7 +689,7 @@ public class WaveDriver {
             for(int y = 0; y < chunkSize; y++){
                 for(int z = 0; z < chunkSize; z++){
                     BlockPos curr = new BlockPos(c - x, u - y, v - z);
-                    System.out.println("Printing current position inside readChunkByChunkSize: " + curr);
+                    //System.out.println("Printing current position inside readChunkByChunkSize: " + curr);
 
                     //If our position is inside the grid
                     if(evaulatePositionRework(curr)){
@@ -671,13 +715,24 @@ public class WaveDriver {
         while(itr.hasNext()){
             WFCChunk curr = itr.next();
             Vector<Integer> currAdjs = curr._chunkAdjs;
-            System.out.println("Comparing current adj's of " + currAdjs + " with incoming " + inc._chunkAdjs);
-            //TODO
-            if(currAdjs == inc._chunkAdjs){
+            //System.out.println("Comparing current adj's of " + currAdjs + " with incoming " + inc._chunkAdjs);
+
+            //For itr's chunk, check to see if we match
+            boolean matches = true;
+
+            for(int test = 0; test < inc._chunkAdjs.size(); test++){
+                if(currAdjs.get(test) != inc._chunkAdjs.get(test)){
+                    //If something is amiss, we fail
+                    matches = false;
+                }
+            }
+
+            //If we get through the entire Vector and don't find anything different, then we have found a match
+            if(matches){
                 return chunkToIntegerMap.get(curr);
             }
-        }
 
+        }
         return -2;
     }
 
