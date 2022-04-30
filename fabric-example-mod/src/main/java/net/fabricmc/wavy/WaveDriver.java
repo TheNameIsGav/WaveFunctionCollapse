@@ -497,7 +497,7 @@ public class WaveDriver {
 
     //Modify these methods - I never get to a blockposition that cannot be read in it's entirety, so I just need to check if it's got an edge
 
-    //TODO down, west, and north doesn't work
+    //Its not that specific directions don't work, it's that multiple elements in the adjs don't work
     private void AddChunkAdjacencies(int id, BlockPos pos){
 
         /*
@@ -509,8 +509,10 @@ public class WaveDriver {
         //Checking the 3 min-chunk borders
         Vector3d minBorders = chunkIsBorderingEdgeMin(pos);
         if(minBorders.x == 1){ //We have a westward edge (2)
+            System.out.println( pos + " Block has westward edge ");
             addChunkEdgeAdjacency(id, 2, 3);
         } else { //Normal
+            System.out.println( pos + " Block has westward adjacency ");
             addChunkAdjacency(id, 2, pos.west());
         }
 
@@ -599,25 +601,35 @@ public class WaveDriver {
     //Add chunk adjacency and then edge adjacency in the opposite direction
     private void addChunkEdgeAdjacency(int id, int direction, int opposite){
         Vector<Integer> prevAdj = adj.get(id).get(direction);
+
+        System.out.println("Adjacencies before adding -1: " + prevAdj);
         prevAdj.add(-1);
         LinkedHashSet<Integer> hashSet = new LinkedHashSet<>(prevAdj);
         prevAdj.clear();
         prevAdj.addAll(hashSet);
-        adj.get(id).set(direction, prevAdj);
 
-        prevAdj = adj.get(-1).get(opposite);
-        prevAdj.add(id);
-        hashSet = new LinkedHashSet<>(prevAdj);
-        prevAdj.clear();
-        prevAdj.addAll(hashSet);
-        adj.get(-1).set(opposite, prevAdj);
+        System.out.println("Adjacencies after adding -1: " + prevAdj);
+        adj.get(id).set(direction, prevAdj);
+        //System.out.println("Prev Adjacencies: " + prevAdj);
+
+
+        Vector<Integer> testPrev = adj.get(-1).get(opposite); 
+        testPrev.add(id);
+        hashSet = new LinkedHashSet<>(testPrev);
+        testPrev.clear();
+        testPrev.addAll(hashSet);
+        adj.get(-1).set(opposite, testPrev);
     }
 
     private void addChunkAdjacency(int id, int direction, BlockPos newPos){
         WFCChunk newChunk = addChunk(newPos.getX(), newPos.getY(), newPos.getZ());
         Vector<Vector<Integer>> originalAdjs = adj.get(id);
+
+        System.out.println("Adjacencies before adding adjacent chunk: " + originalAdjs.get(direction));
         originalAdjs.get(direction).add(newChunk._id);
+        System.out.println("Adjacencies after adding adjacent chunk: " + originalAdjs.get(direction));
         adj.put(id, originalAdjs);
+        //System.out.println("Original Adjacencies: " + originalAdjs);
     }
 
     //Adds all singleton blocks within the input grid for use within chunk adjacencies
@@ -671,11 +683,11 @@ public class WaveDriver {
             ret._id = currentIndex;
             currentIndex++;
             listOfSeenChunks.put(ret._id, 1);
-            System.out.println("Found new chunk with values " + ret);
+            //System.out.println("Found new chunk with values " + ret);
         } else { //This is a seen chunk, so increase amt by 1
             ret._id = flag;
             listOfSeenChunks.put(flag, listOfSeenChunks.get(flag) + 1);
-            System.out.println("Found old chunk with values " + ret);
+            //System.out.println("Found old chunk with values " + ret);
         }
 
         return ret;
