@@ -89,7 +89,7 @@ public class WFC implements ModInitializer {
 				MinecraftClient mc = MinecraftClient.getInstance();
 				waveDriver.Mc(mc);
 
-				int ret = waveDriver.secondStepWrapper(30);
+				int ret = waveDriver.secondStepWrapper(1);
 				mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("Second WFC finished with value " + ret), mc.player.getUuid());
 				return 1;
 			}));
