@@ -349,7 +349,7 @@ public class WaveDriver {
         Vector<Integer> _chunkAdjs = new Vector<Integer>();
 
         WFCChunk() {
-            _id = 0;
+            _id = -4;
         }
 
         WFCChunk(int id, Vector<Integer> adjs){
@@ -484,25 +484,8 @@ public class WaveDriver {
             for(int y = max.getY(); y >= min.getY() + chunkSize-1; y--){
                 for(int z = max.getZ(); z >= min.getZ() + chunkSize-1; z--){
                     //System.out.println("Chunk Start Pos: " + x + ", " + y + ", " + z);
-                    WFCChunk newChunk = addChunk(x, y, z); //Validated with single chunk size
+                    WFCChunk newChunk = addChunk(x, y, z, true); //Validated with single chunk size
 
-                    //System.out.println("Chunk: " + newChunk);
-
-                    
-                    //Add Adjancecies
-                    Vector<Vector<Integer>> newVec = new Vector<Vector<Integer>>();
-                    for(int i = 0; i < 6; i++){
-                        newVec.add(new Vector<Integer>());
-                    }
-
-                    //check to see that we haven't added to the adjacencies beforehand
-
-                    if(!integerToChunkMap.keySet().contains(newChunk._id)) {
-                        adj.put(newChunk._id, newVec);
-                        integerToChunkMap.put(newChunk._id, newChunk);
-                        chunkToIntegerMap.put(newChunk, newChunk._id);
-                    }
-                    
                     AddChunkAdjacencies(newChunk._id, new BlockPos(x, y, z));
                 }
             }
@@ -537,8 +520,6 @@ public class WaveDriver {
             West - 2, East - 3
             North - 4, South - 5
         */
-
-        
 
         //Checking the 3 min-chunk borders
         Vector3d minBorders = chunkIsBorderingEdgeMin(pos);
@@ -615,7 +596,7 @@ public class WaveDriver {
         int yThreshold = min.getY() + chunkSize - 1;
         int zThreshold = min.getZ() + chunkSize - 1;
 
-        Vector3d ret = new Vector3d(0,0, 0);
+        Vector3d ret = new Vector3d(0,0,0);
 
         if(curr.getX() == xThreshold){
             ret.x = 1;
@@ -640,7 +621,6 @@ public class WaveDriver {
             adj.get(id).set(direction, prevAdj);
         }
         
-
         Vector<Integer> testPrev = adj.get(-1).get(opposite); 
         if(!testPrev.contains(id)){
             testPrev.add(id);
@@ -650,14 +630,14 @@ public class WaveDriver {
     }
 
     private void addChunkAdjacency(int id, int direction, BlockPos newPos){
-        WFCChunk newChunk = addChunk(newPos.getX(), newPos.getY(), newPos.getZ());
+        WFCChunk adjChunk = addChunk(newPos.getX(), newPos.getY(), newPos.getZ(), false);
+        //System.out.println("Adjacent Chunk: " + adjChunk);
         Vector<Integer> originalAdjs = adj.get(id).get(direction);
 
-        if(!originalAdjs.contains(newChunk._id)){
-            originalAdjs.add(newChunk._id);
+        if(!originalAdjs.contains(adjChunk._id)){
+            originalAdjs.add(adjChunk._id);
             adj.get(id).set(direction, originalAdjs);
         }
-        
     }
 
     //Adds all singleton blocks within the input grid for use within chunk adjacencies
@@ -698,26 +678,38 @@ public class WaveDriver {
     }
 
     //Given the top left corner of a block, extends to read in blocks in the size of the chunk
-    private WFCChunk addChunk(int x, int y, int z){
+    private WFCChunk addChunk(int x, int y, int z, boolean actual){
         WFCChunk ret = new WFCChunk();
 
         //Actually read in the values from the set
         Vector<Integer> a = readChunkByChunkSize(x, y, z);
         ret._chunkAdjs = a;
 
+        Vector<Vector<Integer>> newVec = new Vector<Vector<Integer>>();
+        for(int i = 0; i < 6; i++){
+            newVec.add(new Vector<Integer>());
+        }
+
         //Check to see if we have seen this particular arrangement of chunk before
         int flag = checkChunkSeenBefore(ret);
+
         if(flag == -2){ //This is a new chunk
             ret._id = currentIndex;
             currentIndex++;
             listOfSeenChunks.put(ret._id, 1);
-            //System.out.println("Found new chunk with values " + ret);
-        } else { //This is a seen chunk, so increase amt by 1
-            ret._id = flag;
+            adj.put(ret._id, newVec);
+            integerToChunkMap.put(ret._id, ret);
+            chunkToIntegerMap.put(ret, ret._id);
+            //System.out.println("New Ret: " + ret);
+        } else if (actual){ //This is a seen chunk, so increase amt by 1
+            ret = integerToChunkMap.get(flag);
+            
             listOfSeenChunks.put(flag, listOfSeenChunks.get(flag) + 1);
             //System.out.println("Found old chunk with values " + ret);
+        } else {
+            ret = integerToChunkMap.get(flag);
         }
-
+        System.out.println("Returned ret: "  + ret);
         return ret;
     }
 
@@ -745,7 +737,7 @@ public class WaveDriver {
         return a;
     }
 
-    //Checks a given chunk to see if it's adjacencies match another in the set
+    //Checks a given chunk to see if it's blocks match another in the set
     //If they don't match, pass back -2 flag
     //If do match, pass back index of that chunk
     private Integer checkChunkSeenBefore(WFCChunk inc){
