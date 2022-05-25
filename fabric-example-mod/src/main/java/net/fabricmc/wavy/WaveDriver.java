@@ -756,6 +756,15 @@ public class WaveDriver {
         return -2;
     }
 
+    //README
+
+    /*
+
+    At the end of the semester you had just finished working on the algorithm so that it worked with single chunks
+    You have not tested it with chunks of different sizes yet. 
+
+    */
+
     public int secondStepChunkWFC(){
 
         collapseMap = new HashMap<BlockPos, Vector<Integer>>();
