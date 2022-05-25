@@ -453,6 +453,7 @@ public class WaveDriver {
     BlockPos max;
 
     BlockPos runMin;
+    BlockPos runMax;
 
     private int buildAdjacenciesChunks(){
 
@@ -474,7 +475,6 @@ public class WaveDriver {
         Vector<Vector<Integer>> a = new Vector<Vector<Integer>>();
         for(int i = 0; i < 6; i++){
             Vector<Integer> b = new Vector<Integer>();
-            b.add(-1);
             a.add(b);
         }
         adj.put(-1, a);
@@ -709,7 +709,6 @@ public class WaveDriver {
         } else {
             ret = integerToChunkMap.get(flag);
         }
-        System.out.println("Returned ret: "  + ret);
         return ret;
     }
 
@@ -779,29 +778,39 @@ public class WaveDriver {
 
         Vector<Integer> t = new Vector<Integer>(listOfSeenChunks.keySet());
 
-        
+        //Setup minimum and maximum positions for the matrix
+        runMin = new BlockPos((runPos1.getX() < runPos2.getX() ? runPos1.getX() : runPos2.getX())  + chunkSize -2, 
+                                (runPos1.getY() < runPos2.getY() ? runPos1.getY() : runPos2.getY()) + chunkSize -2, 
+                                (runPos1.getZ() < runPos2.getZ() ? runPos1.getZ() : runPos2.getZ()) + chunkSize -2);
+
+        runMax = new BlockPos((runPos1.getX() > runPos2.getX() ? runPos1.getX() : runPos2.getX()) + 1, 
+                                (runPos1.getY() > runPos2.getY() ? runPos1.getY() : runPos2.getY()) + 1, 
+                                (runPos1.getZ() > runPos2.getZ() ? runPos1.getZ() : runPos2.getZ()) + 1);
+
+        System.out.println("RunMin: " + runMin);
+        System.out.println("Run Max: " + runMax);
 
         //Add all possible positions to map
-        for(int x = runPos1.getX(); x >= runPos2.getX() + chunkSize -1; x--){
-            for(int y = runPos1.getY(); y >= runPos2.getY() + chunkSize -1; y--){
-                for(int z = runPos1.getZ(); z >= runPos2.getZ() + chunkSize -1; z--){
+        for(int x = runMax.getX(); x >= runMin.getX(); x--){
+            for(int y = runMax.getY(); y >= runMin.getY(); y--){
+                for(int z = runMax.getZ(); z >= runMin.getZ(); z--){
                     collapseMap.put(new BlockPos(x, y, z), t);
                 }
             }
         }
 
         //Expand the run position by 1 and add a ring of edge adjacencies
-        AddEdges();
+        //AddEdges(); We don't have to run this because all it does it update the positions, we can just use runMin and runMax instead
         ManipulateEdges();
 
         System.out.println("Collapse Map: " + collapseMap);
         System.out.println("Collapsed: " + collapsed);
 
-        int itr = 100;
+        int itr = 1000;
         boolean done = false;
         boolean validConfig = true;
 
-        System.out.println("Test 1");
+        //System.out.println("Test 1");
         
         while(!done && itr > 0){
             itr--;
@@ -810,33 +819,35 @@ public class WaveDriver {
                 done = true;
                 break;
             }
-            System.out.println("Test 2");
+            //System.out.println("Test 2");
 
             BlockPos current = findLeastEntropy();
 
-            System.out.println("Test 3");
+            //System.out.println("Test 3");
 
             if(current == null){
+                System.out.println("Found invalid entropic block");
                 validConfig = false;
                 break;
             }
 
-            System.out.println("Test 4");
+            //System.out.println("Test 4");
 
             //Collapse it
             if(!collapseNode(current)){
+                System.out.println("Found invalid config");
                 validConfig = false;
                 break;
             }
 
-            System.out.println("Test 5");
+            //System.out.println("Test 5");
 
             changeSurrounding(current, SHOULDWRAP);
 
-            System.out.println("Test 6");
+            //System.out.println("Test 6");
         }
 
-        System.out.println("Test Final");
+        //System.out.println("Test Final");
 
         RemoveEdgeBlocks();
 
@@ -1114,7 +1125,7 @@ public class WaveDriver {
             if(!collapsed.contains(bp)){ //If we have not seen this before
                 //System.out.println("Inside of the if statement");
                 //If we are on one of the xEdges
-                if(x == runPos1.getX() ||  x == runPos2.getX()) {
+                if(x == runMax.getX() ||  x == runMin.getX()) {
                     //System.out.println("Inside of the second if statement");
                     collapseMap.put(bp, new Vector<Integer>(){{add(-1);}});
                     collapsed.add(bp);
@@ -1122,14 +1133,14 @@ public class WaveDriver {
                 }
 
                 //if we are on one of the yEdges
-                if(y == runPos1.getY() || y == runPos2.getY()) {
+                if(y == runMax.getY() || y == runMin.getY()) {
                     collapseMap.put(bp, new Vector<Integer>(){{add(-1);}});
                     collapsed.add(bp);
                     edges.add(bp);
                 }
 
                 //if we are on one of the zEdges 
-                if(z == runPos1.getZ() || z == runPos2.getZ()){
+                if(z == runMax.getZ() || z == runMin.getZ()){
                     collapseMap.put(bp, new Vector<Integer>(){{add(-1);}});
                     collapsed.add(bp);
                     edges.add(bp);
@@ -1346,13 +1357,13 @@ public class WaveDriver {
         Vector<Integer> potential = collapseMap.get(blockPos);
         Vector<Integer> pickVec = new Vector<Integer>();
 
-        System.out.println("Test 4.1");
+        //System.out.println("Test 4.1");
 
         if(potential.contains(-1)){
             return false;
         }
 
-        System.out.println("Test 4.2");
+        //System.out.println("Test 4.2");
 
         for(int i : potential){
             for(int j = 0; j < listOfSeenChunks.get(i); j++){
@@ -1360,19 +1371,19 @@ public class WaveDriver {
             }
         }
 
-        System.out.println("Test 4.3");
+        //System.out.println("Test 4.3");
         
         int picked = (int) (Math.random() * pickVec.size());
 
         Vector<Integer> t = new Vector<Integer>();
         t.add(pickVec.get(picked));
 
-        System.out.println("Test 4.4");
+        //System.out.println("Test 4.4");
 
         collapsed.add(blockPos);
         collapseMap.put(blockPos, t);
 
-        System.out.println("Test 4.5");
+        //System.out.println("Test 4.5");
 
         return true;
     }
