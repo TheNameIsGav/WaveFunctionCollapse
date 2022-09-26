@@ -508,4 +508,259 @@ public class OldWaveDriverCode {
             }
         }
     } */
+
+    // private int buildAdjacenciesChunks(){
+
+    //     //Add edge
+    //     Vector<Vector<Integer>> a = new Vector<Vector<Integer>>();
+    //     for(int i = 0; i < 6; i++){
+    //         Vector<Integer> b = new Vector<Integer>();
+    //         a.add(b);
+    //     }
+    //     adj.put(-1, a);
+        
+    //     //For each position, assume top left and build from there
+    //     for(int x = max.getX(); x >= min.getX() + chunkSize-1; x--){
+    //         for(int y = max.getY(); y >= min.getY() + chunkSize-1; y--){
+    //             for(int z = max.getZ(); z >= min.getZ() + chunkSize-1; z--){
+    //                 ////System.out.println("Chunk Start Pos: " + x + ", " + y + ", " + z);
+    //                 WFCChunk newChunk = addChunk(x, y, z, true); //Validated with single chunk size
+
+    //                 AddChunkAdjacencies(newChunk._id, new BlockPos(x, y, z));
+    //             }
+    //         }
+    //     }
+
+    //     return 1;
+    // }
+
+        // private Integer[][][] readChunkByChunkSize(int c, int u, int v){
+    //     Integer[][][] a = new Integer[chunkSize][chunkSize][chunkSize];
+
+    //     for(int x = 0; x < chunkSize; x++){
+    //         for(int y = 0; y < chunkSize; y++){
+    //             for(int z = 0; z < chunkSize; z++){
+    //                 BlockPos curr = new BlockPos(c - x, u - y, v - z);
+    //                 ////System.out.println("Printing current position inside readChunkByChunkSize: " + curr);
+
+    //                 //If our position is inside the grid
+    //                 if(evaulatePositionRework(curr)){
+    //                     //Adds that int to our array
+    //                     a[x][y][z] = seenBlocksToInt.get(world.getBlockState(curr));
+
+    //                 } else {
+    //                     //System.out.println("we should not get here if I have done my math properly");
+    //                     //a.add(-1);
+    //                 }
+    //             }
+    //         }
+    //     }
+    //     return a;
+    // }
+
+    //Given the top left corner of a block, extends to read in blocks in the size of the chunk
+    // private WFCChunk addChunk(int x, int y, int z, boolean actual){
+    //     WFCChunk ret = new WFCChunk();
+
+    //     //Actually read in the values from the set
+    //     Integer[][][] a = readChunkByChunkSize(x, y, z);
+    //     ret._chunkBlockValues = a;
+
+    //     Vector<Vector<Integer>> newVec = new Vector<Vector<Integer>>();
+    //     for(int i = 0; i < 6; i++){
+    //         newVec.add(new Vector<Integer>());
+    //     }
+
+    //     //Check to see if we have seen this particular arrangement of chunk before
+    //     int flag = checkChunkSeenBefore(ret);
+
+    //     if(flag == -2){ //This is a new chunk
+    //         ret._id = currentIndex;
+    //         currentIndex++;
+    //         listOfSeenChunks.put(ret._id, 1);
+    //         adj.put(ret._id, newVec);
+    //         integerToChunkMap.put(ret._id, ret);
+    //         chunkToIntegerMap.put(ret, ret._id);
+    //         ////System.out.println("New Ret: " + ret);
+    //     } else if (actual){ //This is a seen chunk, so increase amt by 1
+    //         ret = integerToChunkMap.get(flag);
+            
+    //         listOfSeenChunks.put(flag, listOfSeenChunks.get(flag) + 1);
+    //         ////System.out.println("Found old chunk with values " + ret);
+    //     } else {
+    //         ret = integerToChunkMap.get(flag);
+    //     }
+    //     return ret;
+    // }
+
+        //Modify these methods - I never get to a blockposition that cannot be read in it's entirety, so I just need to check if it's got an edge
+
+    //Its not that specific directions don't work, it's that multiple elements in the adjs don't work
+    // private void AddChunkAdjacencies(int id, BlockPos pos) {
+    //     /*
+    //         Up - 0, Down - 1
+    //         West - 2, East - 3
+    //         North - 4, South - 5
+    //     */
+
+    //     //Checking the 3 min-chunk borders
+    //     Vector3d minBorders = chunkIsBorderingEdgeMin(pos);
+
+    //     Vector3d maxBorders = chunkIsBorderingEdgeMax(pos);
+        
+    //     if(minBorders.x == 1){         
+    //         addChunkEdgeAdjacency(id, 2, 3);
+    //     } else { //Normal
+    //         addChunkAdjacency(id, 2, pos.west());
+    //     }
+
+    //     if(minBorders.y == 1) { //We have a down edge (1) 
+    //         addChunkEdgeAdjacency(id, 1, 0);
+    //     } else { //Normal
+    //         addChunkAdjacency(id, 1, pos.down());
+    //     }
+
+    //     if(minBorders.z == 1){ //We have a northward edge (4)
+    //         addChunkEdgeAdjacency(id, 4, 5);
+    //     } else { //Normal
+    //         addChunkAdjacency(id, 4, pos.north());
+    //     }
+
+    //     //Checking the 3 max borders
+        
+
+    //     if(maxBorders.x == 1){ //We have a Eastward Edge (3)
+    //         addChunkEdgeAdjacency(id, 3, 2);
+    //     } else {
+    //         addChunkAdjacency(id, 3, pos.east());
+    //     }
+
+    //     if(maxBorders.y == 1){ //We have an up edge (0)
+    //         addChunkEdgeAdjacency(id, 0, 1);
+    //     } else {
+    //         addChunkAdjacency(id, 0, pos.up());
+    //     }
+
+    //     if(maxBorders.z == 1) {//We have a Southern Edge (5)
+    //         addChunkEdgeAdjacency(id, 5, 4);
+    //     } else {
+    //         addChunkAdjacency(id, 5, pos.south());
+    //     }
+    // }
+
+    // private Vector3d chunkIsBorderingEdgeMax(BlockPos curr) {
+    //     int xThreshold = max.getX();
+    //     int yThreshold = max.getY();
+    //     int zThreshold = max.getZ();
+
+    //     Vector3d ret = new Vector3d(0,0, 0);
+
+    //     if(curr.getX() == xThreshold){
+    //         ret.x = 1;
+    //     }
+
+    //     if(curr.getY() == yThreshold){
+    //         ret.y = 1;
+    //     }
+
+    //     if(curr.getZ() == zThreshold){
+    //         ret.z = 1;
+    //     }
+    
+    //     return ret;
+    // }
+
+    // //If the block position that I am currently on is equal to x, y, or z chunk thresholds, return the axis to add edge adjacency
+    // //returns a vector of axis that border
+
+    // private Vector3d chunkIsBorderingEdgeMin(BlockPos curr){
+    //     int xThreshold = min.getX() + chunkSize - 1;
+    //     int yThreshold = min.getY() + chunkSize - 1;
+    //     int zThreshold = min.getZ() + chunkSize - 1;
+
+    //     Vector3d ret = new Vector3d(0,0,0);
+
+    //     if(curr.getX() == xThreshold){
+    //         ret.x = 1;
+    //     }
+
+    //     if(curr.getY() == yThreshold){
+    //         ret.y = 1;
+    //     }
+
+    //     if(curr.getZ() == zThreshold){
+    //         ret.z = 1;
+    //     }
+    
+    //     return ret;
+    // }
+
+    // //Add chunk adjacency and then edge adjacency in the opposite direction
+    // private void addChunkEdgeAdjacency(int id, int direction, int opposite){
+    //     Vector<Integer> prevAdj = adj.get(id).get(direction);
+    //     if(!prevAdj.contains(-1)){
+    //         prevAdj.add(-1);
+    //         adj.get(id).set(direction, prevAdj);
+    //     }
+        
+    //     Vector<Integer> testPrev = adj.get(-1).get(opposite); 
+    //     if(!testPrev.contains(id)){
+    //         testPrev.add(id);
+    //         adj.get(-1).set(opposite, testPrev);
+    //     }
+        
+    // }
+
+    // private void addChunkAdjacency(int id, int direction, BlockPos newPos){
+    //     WFCChunk adjChunk = addChunk(newPos.getX(), newPos.getY(), newPos.getZ(), false);
+    //     ////System.out.println("Adjacent Chunk: " + adjChunk);
+    //     Vector<Integer> originalAdjs = adj.get(id).get(direction);
+
+    //     if(!originalAdjs.contains(adjChunk._id)){
+    //         originalAdjs.add(adjChunk._id);
+    //         adj.get(id).set(direction, originalAdjs);
+    //     }
+    // }
+
+    // private boolean evaulatePositionRework(BlockPos test){
+
+    //     if(test.getX() > max.getX() || test.getX() < min.getX()){
+    //         return false;
+    //     }
+
+    //     if(test.getY() > max.getY() || test.getY() < min.getY()){
+    //         return false;
+    //     }
+
+    //     if(test.getZ() > max.getZ() || test.getZ() < min.getZ()){
+    //         return false;
+    //     }
+
+    //     return true;
+    // }
+
+    // private int buildAdjacenciesChunks(){
+
+    //     //Add edge
+    //     Vector<Vector<Integer>> a = new Vector<Vector<Integer>>();
+    //     for(int i = 0; i < 6; i++){
+    //         Vector<Integer> b = new Vector<Integer>();
+    //         a.add(b);
+    //     }
+    //     adj.put(-1, a);
+        
+    //     //For each position, assume top left and build from there
+    //     for(int x = max.getX(); x >= min.getX() + chunkSize-1; x--){
+    //         for(int y = max.getY(); y >= min.getY() + chunkSize-1; y--){
+    //             for(int z = max.getZ(); z >= min.getZ() + chunkSize-1; z--){
+    //                 ////System.out.println("Chunk Start Pos: " + x + ", " + y + ", " + z);
+    //                 WFCChunk newChunk = addChunk(x, y, z, true); //Validated with single chunk size
+
+    //                 AddChunkAdjacencies(newChunk._id, new BlockPos(x, y, z));
+    //             }
+    //         }
+    //     }
+
+    //     return 1;
+    // }
 }

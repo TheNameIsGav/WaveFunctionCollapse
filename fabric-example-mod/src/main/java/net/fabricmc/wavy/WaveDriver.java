@@ -309,7 +309,25 @@ public class WaveDriver {
 
         @Override
         public String toString() {
-            return "(" + this._id + ":" + this._chunkBlockValues.toString() + ")";
+
+            String ret = "";
+
+            for(int x = 0; x < _chunkBlockValues.length; x++){
+                ret += "[";
+                for(int y = 0; y < _chunkBlockValues[x].length; y++){
+                    ret += "[";
+                    for(int z = 0; z < _chunkBlockValues[x][y].length; z++){
+                        ret += _chunkBlockValues[x][y][z].toString() + ",";
+                    }
+                    ret = ret.substring(0, ret.length()-1);
+                    ret += "],";
+                }
+                ret = ret.substring(0, ret.length()-1);
+                ret += "] , ";
+            }
+            ret = ret.substring(0, ret.length()-3);
+
+            return "(" + this._id + ": " + ret + ")";
         }
 
         @Override
@@ -344,8 +362,28 @@ public class WaveDriver {
         }
     }
 
+    void Print3DArray(Object[][][] array){
+        String ret = "";
+
+        for(int x = 0; x < array.length; x++){
+            ret += "[";
+            for(int y = 0; y < array[x].length; y++){
+                ret += "[";
+                for(int z = 0; z < array[x][y].length; z++){
+                    ret += array[x][y][z].toString() + ",";
+                }
+                ret = ret.substring(0, ret.length()-1);
+                ret += "],";
+            }
+            ret = ret.substring(0, ret.length()-1);
+            ret += "] , ";
+        }
+        ret = ret.substring(0, ret.length()-3);
+
+        System.out.println(ret);
+    }
+
     //Setting up the default new structures
-    
     //integer to block map equivalent
     HashMap<Integer, WFCChunk> integerToChunkMap = new HashMap<Integer, WFCChunk>();
 
@@ -401,6 +439,12 @@ public class WaveDriver {
         //Goes through the chunks in the matrix and assembles blocks without associating adjcencies. 
         createChunks();
 
+        Print3DArray(inputIntegersGrid);
+        //Goes through the integers inside of the inputIntegerGrid and creates associations for them
+        createIntegerGridAssocs();
+
+        System.out.println(adj);
+
         //Read in Input Data with chunk size
         //int j = buildAdjacenciesChunks();
         hasRunFirstStep = true;
@@ -416,208 +460,168 @@ public class WaveDriver {
 
     //Grid of the input as integers
     Integer[][][] inputIntegersGrid;
-    static int chunkSize = 5;
+    static int chunkSize = 3;
 
-    private void createChunks(){
+    //Iterates through the entire input sample and generates chunk of specified chunkSize starting from the maximal coordinate
+    private void createChunks() {
 
-        System.out.println("Chunk Size: " + chunkSize);
-
-        int xLength = max.getX() - min.getX() + 2 - chunkSize;
+        int xLength = max.getX() - min.getX() - chunkSize + 2;
         int yLength = max.getY() - min.getY() - chunkSize + 2;
         int zLength = max.getZ() - min.getZ() - chunkSize + 2;
-
-
-        System.out.println("X Length of Array: " + xLength);
-        System.out.println("Y Length of Array: " + yLength);
-        System.out.println("Z Length of Array: " + zLength);
-
 
         inputIntegersGrid = new Integer[xLength][yLength][zLength];
         //Go from max to (min + chunkSize)
         //Each block position is treated as 'maximal' position of the chunk
         //Read in the values for that specific block and make sure that we don't already have it, then add it
         //Read that as an integer, and then put that integer into the (x, y, z) coordinates
-        /*for(int x = max.getX(); x >= min.getX() + chunkSize; x--){
-            for(int y = max.getY(); y >= min.getY() + chunkSize; y--){
-                for(int z = max.getZ(); z >= min.getZ() + chunkSize; z--){
-                    WFCChunk ret = addChunk(x, y, z, true); //Validated with single chunk size
-
-                    //Take the returned chunk, add it to the pre-map of integers
-
-
+        for(int x = 0; x < xLength; x++){
+            for(int y = 0; y < yLength; y++){
+                for(int z = 0; z < zLength; z++){
+                    WFCChunk ret = readChunkRevamped(max.getX() - x, max.getY() - y, max.getZ() - z);//addChunk(x, y, z, true); //Validated with single chunk size
+                    inputIntegersGrid[x][y][z] = ret._id;
                 }
             }
-        }*/
+        }
     }
 
-    private int buildAdjacenciesChunks(){
+    //Reads in a chunk from maximal coordiante (x, ,y z)
+    private WFCChunk readChunkRevamped(int x, int y, int z) {
+        WFCChunk chunk = new WFCChunk();
 
-        //Add edge
+        //Read in the chunk
+        for(int q = 0; q < chunkSize; q++){
+            for(int w = 0; w < chunkSize; w++){
+                for(int r = 0; r < chunkSize; r++){
+                    BlockPos bp = new BlockPos(x - q, y - w, z - r);
+                    chunk._chunkBlockValues[q][w][r] = seenBlocksToInt.get(world.getBlockState(bp));
+                }
+            }
+        }
+
+        //Determine if it's a new chunk, if it is add it to the places, if not increase it's amt
+        int flag = checkChunkSeenBefore(chunk);
+        if(flag == -2){ //This is a new chunk
+            chunk._id = currentIndex;
+            currentIndex++;
+            listOfSeenChunks.put(chunk._id, 1);
+            integerToChunkMap.put(chunk._id, chunk);
+            chunkToIntegerMap.put(chunk, chunk._id);
+            ////System.out.println("New Ret: " + ret);
+        } else { //This is a seen chunk, so increase amt by 1
+            chunk = integerToChunkMap.get(flag);
+            listOfSeenChunks.put(flag, listOfSeenChunks.get(flag) + 1);
+        }
+
+        return chunk;
+    }
+
+    /*
+    Up - 0 (+), Down - 1 (-) - y direction
+    West - 2 (-), East - 3 (+) - x direction
+    North - 4 (-), South - 5 (+) - z direction
+    */
+    //Generates adjacencies for integers within the inputIntegersGrid
+    private void createIntegerGridAssocs() {
+
         Vector<Vector<Integer>> a = new Vector<Vector<Integer>>();
         for(int i = 0; i < 6; i++){
             Vector<Integer> b = new Vector<Integer>();
             a.add(b);
         }
         adj.put(-1, a);
-        
-        //For each position, assume top left and build from there
-        for(int x = max.getX(); x >= min.getX() + chunkSize-1; x--){
-            for(int y = max.getY(); y >= min.getY() + chunkSize-1; y--){
-                for(int z = max.getZ(); z >= min.getZ() + chunkSize-1; z--){
-                    ////System.out.println("Chunk Start Pos: " + x + ", " + y + ", " + z);
-                    WFCChunk newChunk = addChunk(x, y, z, true); //Validated with single chunk size
 
-                    AddChunkAdjacencies(newChunk._id, new BlockPos(x, y, z));
+        for(int x = inputIntegersGrid.length-1; x >=0 ; x--){
+            for(int y = inputIntegersGrid[0].length-1; y >= 0 ; y--){
+                for(int z = inputIntegersGrid[0][0].length-1; z >= 0 ; z--){
+                    System.out.println("X: " + x + " Y: " + y + " Z: " + z);
+                    int id = inputIntegersGrid[x][y][z];
+                    if(adj.get(id) == null){
+                        adj.put(id, (Vector<Vector<Integer>>)a.clone());
+                    }
+
+                    //Up and Down
+                    Vec3d up = new Vec3d(x, y + 1, z);
+                    integerGridAssocHelper(up, 0, id);
+
+                    Vec3d down = new Vec3d(x, y - 1, z);
+                    integerGridAssocHelper(down, 1, id);
+
+                    //East and West
+                    Vec3d east = new Vec3d(x + 1, y, z);
+                    integerGridAssocHelper(east, 3, id);
+                    
+                    Vec3d west = new Vec3d(x - 1, y, z);
+                    integerGridAssocHelper(west, 2, id);
+
+                    //North and South
+                    Vec3d north = new Vec3d(x, y, z - 1);
+                    integerGridAssocHelper(north, 4, id);
+
+                    Vec3d south = new Vec3d(x, y, z + 1);
+                    integerGridAssocHelper(south, 5, id);
                 }
             }
         }
-
-        return 1;
     }
 
-    private boolean evaulatePositionRework(BlockPos test){
+    //Associates the integer at position curr with the adjacencies for the integer id within the adjacency matrix
+    private void integerGridAssocHelper(Vec3d coor, int direction, int id) {
 
-        if(test.getX() > max.getX() || test.getX() < min.getX()){
+        if(withinRange(coor)){
+            //Put the value at the coordinate of up into the adjacencies of the int
+            Vector<Integer> originalAdjs = adj.get(id).get(direction);
+            int target = inputIntegersGrid[(int)coor.x][(int)coor.y][(int)coor.z];
+
+            if(!originalAdjs.contains(target)){
+                originalAdjs.add(target);
+                adj.get(id).set(direction, originalAdjs);
+            }
+        } else { 
+            //Put -1 into the adjacencies of the int, and put this id into -1
+            Vector<Integer> originalAdjs = adj.get(id).get(direction);
+            int target = -1;
+
+            if(!originalAdjs.contains(target)){
+                originalAdjs.add(target);
+                adj.get(id).set(direction, originalAdjs);
+            }
+
+            int x = 0;
+            switch(direction){
+                case 0:
+                    x = 1;
+                case 1:
+                    x = 0;
+                case 2:
+                    x = 3;
+                case 3:
+                    x = 2;
+                case 4:
+                    x = 5;
+                case 5:
+                    x = 4;
+            }
+
+            Vector<Integer> edgeAdjs = adj.get(-1).get(x);
+            if(!edgeAdjs.contains(id)){
+                edgeAdjs.add(id);
+                adj.get(-1).set(x, edgeAdjs);
+            }
+        }
+    }
+
+    //Determines if an x, y, z truple are within the bounds of the inputIntegersGrid
+    private boolean withinRange(Vec3d coor) {
+        int x = (int)coor.x;
+        int y = (int)coor.y;
+        int z = (int)coor.z;
+
+        if(x < 0 || y < 0 || z < 0){
             return false;
-        }
-
-        if(test.getY() > max.getY() || test.getY() < min.getY()){
+        } else if (x > inputIntegersGrid.length-1 || y > inputIntegersGrid[0].length-1 || z > inputIntegersGrid[0][0].length-1) {
             return false;
-        }
-
-        if(test.getZ() > max.getZ() || test.getZ() < min.getZ()){
-            return false;
-        }
-
-        return true;
-    }
-
-    //Modify these methods - I never get to a blockposition that cannot be read in it's entirety, so I just need to check if it's got an edge
-
-    //Its not that specific directions don't work, it's that multiple elements in the adjs don't work
-    private void AddChunkAdjacencies(int id, BlockPos pos) {
-        /*
-            Up - 0, Down - 1
-            West - 2, East - 3
-            North - 4, South - 5
-        */
-
-        //Checking the 3 min-chunk borders
-        Vector3d minBorders = chunkIsBorderingEdgeMin(pos);
-
-        Vector3d maxBorders = chunkIsBorderingEdgeMax(pos);
-        
-        if(minBorders.x == 1){         
-            addChunkEdgeAdjacency(id, 2, 3);
-        } else { //Normal
-            addChunkAdjacency(id, 2, pos.west());
-        }
-
-        if(minBorders.y == 1) { //We have a down edge (1) 
-            addChunkEdgeAdjacency(id, 1, 0);
-        } else { //Normal
-            addChunkAdjacency(id, 1, pos.down());
-        }
-
-        if(minBorders.z == 1){ //We have a northward edge (4)
-            addChunkEdgeAdjacency(id, 4, 5);
-        } else { //Normal
-            addChunkAdjacency(id, 4, pos.north());
-        }
-
-        //Checking the 3 max borders
-        
-
-        if(maxBorders.x == 1){ //We have a Eastward Edge (3)
-            addChunkEdgeAdjacency(id, 3, 2);
         } else {
-            addChunkAdjacency(id, 3, pos.east());
-        }
-
-        if(maxBorders.y == 1){ //We have an up edge (0)
-            addChunkEdgeAdjacency(id, 0, 1);
-        } else {
-            addChunkAdjacency(id, 0, pos.up());
-        }
-
-        if(maxBorders.z == 1) {//We have a Southern Edge (5)
-            addChunkEdgeAdjacency(id, 5, 4);
-        } else {
-            addChunkAdjacency(id, 5, pos.south());
-        }
-    }
-
-    private Vector3d chunkIsBorderingEdgeMax(BlockPos curr) {
-        int xThreshold = max.getX();
-        int yThreshold = max.getY();
-        int zThreshold = max.getZ();
-
-        Vector3d ret = new Vector3d(0,0, 0);
-
-        if(curr.getX() == xThreshold){
-            ret.x = 1;
-        }
-
-        if(curr.getY() == yThreshold){
-            ret.y = 1;
-        }
-
-        if(curr.getZ() == zThreshold){
-            ret.z = 1;
-        }
-    
-        return ret;
-    }
-
-    //If the block position that I am currently on is equal to x, y, or z chunk thresholds, return the axis to add edge adjacency
-    //returns a vector of axis that border
-
-    private Vector3d chunkIsBorderingEdgeMin(BlockPos curr){
-        int xThreshold = min.getX() + chunkSize - 1;
-        int yThreshold = min.getY() + chunkSize - 1;
-        int zThreshold = min.getZ() + chunkSize - 1;
-
-        Vector3d ret = new Vector3d(0,0,0);
-
-        if(curr.getX() == xThreshold){
-            ret.x = 1;
-        }
-
-        if(curr.getY() == yThreshold){
-            ret.y = 1;
-        }
-
-        if(curr.getZ() == zThreshold){
-            ret.z = 1;
-        }
-    
-        return ret;
-    }
-
-    //Add chunk adjacency and then edge adjacency in the opposite direction
-    private void addChunkEdgeAdjacency(int id, int direction, int opposite){
-        Vector<Integer> prevAdj = adj.get(id).get(direction);
-        if(!prevAdj.contains(-1)){
-            prevAdj.add(-1);
-            adj.get(id).set(direction, prevAdj);
-        }
-        
-        Vector<Integer> testPrev = adj.get(-1).get(opposite); 
-        if(!testPrev.contains(id)){
-            testPrev.add(id);
-            adj.get(-1).set(opposite, testPrev);
-        }
-        
-    }
-
-    private void addChunkAdjacency(int id, int direction, BlockPos newPos){
-        WFCChunk adjChunk = addChunk(newPos.getX(), newPos.getY(), newPos.getZ(), false);
-        ////System.out.println("Adjacent Chunk: " + adjChunk);
-        Vector<Integer> originalAdjs = adj.get(id).get(direction);
-
-        if(!originalAdjs.contains(adjChunk._id)){
-            originalAdjs.add(adjChunk._id);
-            adj.get(id).set(direction, originalAdjs);
+            return true;
         }
     }
 
@@ -641,66 +645,7 @@ public class WaveDriver {
         }
     }
 
-    //Given the top left corner of a block, extends to read in blocks in the size of the chunk
-    private WFCChunk addChunk(int x, int y, int z, boolean actual){
-        WFCChunk ret = new WFCChunk();
-
-        //Actually read in the values from the set
-        Integer[][][] a = readChunkByChunkSize(x, y, z);
-        ret._chunkBlockValues = a;
-
-        Vector<Vector<Integer>> newVec = new Vector<Vector<Integer>>();
-        for(int i = 0; i < 6; i++){
-            newVec.add(new Vector<Integer>());
-        }
-
-        //Check to see if we have seen this particular arrangement of chunk before
-        int flag = checkChunkSeenBefore(ret);
-
-        if(flag == -2){ //This is a new chunk
-            ret._id = currentIndex;
-            currentIndex++;
-            listOfSeenChunks.put(ret._id, 1);
-            adj.put(ret._id, newVec);
-            integerToChunkMap.put(ret._id, ret);
-            chunkToIntegerMap.put(ret, ret._id);
-            ////System.out.println("New Ret: " + ret);
-        } else if (actual){ //This is a seen chunk, so increase amt by 1
-            ret = integerToChunkMap.get(flag);
-            
-            listOfSeenChunks.put(flag, listOfSeenChunks.get(flag) + 1);
-            ////System.out.println("Found old chunk with values " + ret);
-        } else {
-            ret = integerToChunkMap.get(flag);
-        }
-        return ret;
-    }
-
     //Given a starting coordinate, returns the blocks inside that chunk
-    private Integer[][][] readChunkByChunkSize(int c, int u, int v){
-        Integer[][][] a = new Integer[chunkSize][chunkSize][chunkSize];
-
-        for(int x = 0; x < chunkSize; x++){
-            for(int y = 0; y < chunkSize; y++){
-                for(int z = 0; z < chunkSize; z++){
-                    BlockPos curr = new BlockPos(c - x, u - y, v - z);
-                    ////System.out.println("Printing current position inside readChunkByChunkSize: " + curr);
-
-                    //If our position is inside the grid
-                    if(evaulatePositionRework(curr)){
-                        //Adds that int to our array
-                        a[x][y][z] = seenBlocksToInt.get(world.getBlockState(curr));
-
-
-                    } else {
-                        //System.out.println("we should not get here if I have done my math properly");
-                        //a.add(-1);
-                    }
-                }
-            }
-        }
-        return a;
-    }
 
     //Checks a given chunk to see if it's blocks match another in the set
     //If they don't match, pass back -2 flag
@@ -1033,7 +978,6 @@ public class WaveDriver {
     }
     
     private void changeSurrounding(BlockPos current, boolean shouldWrap){
-        boolean ret = true;
         //Wrap current + direction
         //Change up 0
         handleSingleSurroundingChange(current.up(), current, 0, shouldWrap);
