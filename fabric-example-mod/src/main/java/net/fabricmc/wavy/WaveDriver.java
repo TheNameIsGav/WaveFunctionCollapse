@@ -845,13 +845,55 @@ public class WaveDriver {
         while(!done && itr > 0){
             //Check if we have collapsed everything we can
             itr--;
+            if(collapsedOutputIntegerCoordinates.size() == (xLength * yLength * zLength)) {
+                break;
+            }
+
+
             //If we are not done, find the least Entropic position within the array
+                //Go through all elements and find the min val of the length
+            int minVal = Integer.MAX_VALUE;
+            Vec3d minVec = new Vec3d(0,0,0);
+
+            for(int x = 0; x < xLength; x++) {
+                for(int y = 0; y < yLength; y++) {
+                    for(int z = 0; z < zLength; z++) {
+                        if(outputInteger[x][y][z].length < minVal) {
+                            minVal = outputInteger[x][y][z].length;
+                            minVec = new Vec3d(x, y, z);
+                        }
+                    }
+                }
+            }
+
             //Collapse that position
+                //Pick on from the possibilites based on their percent chances
+            //Get a list of all of the potential chunks this could be
+            Integer[] potential = outputInteger[(int)minVec.x][(int)minVec.y][(int)minVec.z];
+            Vector<Integer> pickVec = new Vector<Integer>();
+
+            //For each int inside of potential, add a number of those int's to the pic vec. ex. [1, 1, 1, 1, 1, 2, 2, 3, 3, 3, 4]
+            for(int i : potential) {
+                for(int j = 0; j < listOfSeenChunks.get(i); j++){
+                    pickVec.add(i);
+                }
+            }
+            
+            int picked = (int) (Math.random() * pickVec.size());
+
+            outputInteger[(int)minVec.x][(int)minVec.y][(int)minVec.z] = new Integer[]{pickVec.get(picked)};
+
+
             //Update adjacent spots
             //Check if any adjacencies are empty
-
+            Vec3d up;
+            Vec3d down;
+            Vec3d left;
+            Vec3d right;
+            Vec3d forward;
+            Vec3d back;
+        
         }
-
         //Go through each integer, and generate the chunks
 
         return 1;
