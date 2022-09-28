@@ -28,6 +28,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
+import net.minecraft.world.dimension.YLevels;
 
 
 public class WaveDriver {
@@ -383,6 +384,84 @@ public class WaveDriver {
         System.out.println(ret);
     }
 
+    void Print3DVector(Vec3d vec){
+        int x = (int)vec.x;
+        int y = (int)vec.y;
+        int z = (int)vec.z;
+
+        System.out.println("X:" + x + " Y:" + y + " Z:" + z);
+    }
+
+    void Print3DVector(String label, Vec3d vec){
+        int x = (int)vec.x;
+        int y = (int)vec.y;
+        int z = (int)vec.z;
+
+        System.out.println(label + " X:" + x + " Y:" + y + " Z:" + z);
+    }
+
+    void Print3DVector(String label, int x, int y, int z){
+        System.out.println(label + " X:" + x + " Y:" + y + " Z:" + z);
+    }
+
+    void Print3DVector(int x, int y, int z){
+        System.out.println(" X:" + x + " Y:" + y + " Z:" + z);
+    }
+
+    void PrintArray(Object[] array){
+        String ret = "";
+        for(int x = 0; x < array.length; x++){
+            ret += array[x].toString() + ",";
+        }
+        System.out.println("[" + ret.substring(0, ret.length()-1) + "]");
+    }
+
+    void PrintArray(String label, Object[] array){
+        String ret = "";
+        for(int x = 0; x < array.length; x++){
+            ret += array[x].toString() + ",";
+        }
+        System.out.println(label + " [" + ret.substring(0, ret.length()-1) + "]");
+    }
+
+    Integer[] convertObjToInt(Object[] array){
+        Integer[] ret = new Integer[array.length];
+        for(int i = 0; i < array.length; i++){
+            Object r = array[i];
+            if(r instanceof Integer){
+                int k = (Integer)r;
+                ret[i] = k;
+            }
+        }
+        return ret;
+    }
+
+    void Print4DArray(Object[][][][] array){
+        String ret = "";
+
+        for(int x = 0; x < array.length; x++){
+            ret += "[";
+            for(int y = 0; y < array[x].length; y++){
+                ret += "[";
+                for(int z = 0; z < array[x][y].length; z++){
+                    ret += "[";
+                    for(int i = 0; i < array[x][y][z].length; i++){
+                        ret += array[x][y][z][i] + ",";
+                    }
+                    ret = ret.substring(0, ret.length()-1);    
+                    ret += "],";
+                }
+                ret = ret.substring(0, ret.length()-1);
+                ret += "],";
+            }
+            ret = ret.substring(0, ret.length()-1);
+            ret += "] , ";
+        }
+        ret = ret.substring(0, ret.length()-3);
+
+        System.out.println(ret);
+    }
+
     //Setting up the default new structures
     //integer to block map equivalent
     HashMap<Integer, WFCChunk> integerToChunkMap = new HashMap<Integer, WFCChunk>();
@@ -443,7 +522,7 @@ public class WaveDriver {
         //Goes through the integers inside of the inputIntegerGrid and creates associations for them
         createIntegerGridAssocs();
 
-        System.out.println(adj);
+        //System.out.println(adj);
 
         //Read in Input Data with chunk size
         //int j = buildAdjacenciesChunks();
@@ -674,7 +753,109 @@ public class WaveDriver {
     At the end of the semester you had just finished working on the algorithm so that it worked with single chunks
     You have not tested it with chunks of different sizes yet. 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     */
+    HashSet<Vec3d> collapsedOutputIntegerCoordinates;
+
+    //X, Y, Z, list of possibilities
+    Integer[][][][] outputInteger;
+    public int secondStepRevamped() {
+
+        //Decrease the size by the chunk amount to convert to integers
+        runMin = new BlockPos((runPos1.getX() < runPos2.getX() ? runPos1.getX() : runPos2.getX())
+                             ,(runPos1.getY() < runPos2.getY() ? runPos1.getY() : runPos2.getY())
+                             ,(runPos1.getZ() < runPos2.getZ() ? runPos1.getZ() : runPos2.getZ())
+        );
+
+        runMax = new BlockPos((runPos1.getX() > runPos2.getX() ? runPos1.getX() : runPos2.getX())
+                             ,(runPos1.getY() > runPos2.getY() ? runPos1.getY() : runPos2.getY())
+                             ,(runPos1.getZ() > runPos2.getZ() ? runPos1.getZ() : runPos2.getZ())
+        );
+
+        int xLength = runMax.getX() - runMin.getX() - chunkSize + 4;
+        int yLength = runMax.getY() - runMin.getY() - chunkSize + 4;
+        int zLength = runMax.getZ() - runMin.getZ() - chunkSize + 4;
+
+        outputInteger = new Integer[xLength][yLength][zLength][listOfSeenChunks.size()];
+
+        collapsedOutputIntegerCoordinates = new HashSet<Vec3d>();
+
+        //Go through each position in output integers and add all the possibilities for chunks
+        PrintArray("Seen chunks", listOfSeenChunks.keySet().toArray());
+        Integer[] temp = convertObjToInt(listOfSeenChunks.keySet().toArray());
+        PrintArray("Temp", temp);
+
+        for(int x = 0; x < xLength; x++){
+            for(int y = 0; y < yLength; y++){
+                for(int z = 0; z < zLength; z++){
+                    //Print3DVector(x, y, z);
+
+                    //If we are on an edge, then we make it -1 and collapse it because it has to be an edge
+                    if(x == 0 || y == 0 || z == 0 || x == xLength-1 || y == yLength-1 || z == zLength-1){
+                        Print3DVector("Found edge at", x, y, z);
+                        outputInteger[x][y][z] = new Integer[]{-1};
+                        collapsedOutputIntegerCoordinates.add(new Vec3d(x, y, z));
+                    } else {
+                        Print3DVector("Found not edge at" , x, y, z);
+                        outputInteger[x][y][z] = temp.clone();
+                    }
+                }
+            }
+        }
+
+        //
+
+        System.out.println("Output Integer Dimensions");
+        System.out.println("X: " + xLength);
+        System.out.println("Y: " + yLength);
+        System.out.println("Z: " + zLength);
+
+        Print4DArray(outputInteger);
+
+
+        //Go through the the outputIntegers and find the one with the least entropy
+        int itr = 1000;
+        boolean done = false;
+        
+        while(!done && itr > 0){
+            //Check if we have collapsed everything we can
+            itr--;
+            //If we are not done, find the least Entropic position within the array
+            //Collapse that position
+            //Update adjacent spots
+            //Check if any adjacencies are empty
+
+        }
+
+        //Go through each integer, and generate the chunks
+
+        return 1;
+    }
 
     public int secondStepChunkWFC(){
 
@@ -708,7 +889,7 @@ public class WaveDriver {
                                 (runPos1.getZ() > runPos2.getZ() ? runPos1.getZ() : runPos2.getZ()) + 1);
 
         //System.out.println("RunMin: " + runMin);
-        //System.out.println("Run Max: " + runMax);
+        //System.out.println("RunMax: " + runMax);
 
         //Add all possible positions to map
         for(int x = runMax.getX(); x >= runMin.getX(); x--){
@@ -804,7 +985,7 @@ public class WaveDriver {
         print("Running WFC with " + runs + " runs.");
         int ret = 0;
         for(int i = 0; i < runs; i++){
-            ret = secondStepChunkWFC();
+            ret = secondStepRevamped();
             if(ret == 1){
                 break;
             }
@@ -813,7 +994,7 @@ public class WaveDriver {
         print("We got out!");
 
         if(ret == 1){
-            GenerateChunkWorld();
+            //GenerateChunkWorld();
         } else {
             print("Failed to find valid configuration in " + runs + " runs.");
         }
