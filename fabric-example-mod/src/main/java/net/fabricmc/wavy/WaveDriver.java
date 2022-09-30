@@ -13,6 +13,7 @@ import java.nio.file.Path;
 import java.util.*;
 
 import org.apache.commons.lang3.StringUtils;
+import org.lwjgl.system.CallbackI.B;
 
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.Block;
@@ -851,14 +852,14 @@ public class WaveDriver {
 
 
             //If we are not done, find the least Entropic position within the array
-                //Go through all elements and find the min val of the length
+            //Go through all elements and find the min val of the length
             int minVal = Integer.MAX_VALUE;
             Vec3d minVec = new Vec3d(0,0,0);
 
             for(int x = 0; x < xLength; x++) {
                 for(int y = 0; y < yLength; y++) {
                     for(int z = 0; z < zLength; z++) {
-                        if(outputInteger[x][y][z].length < minVal) {
+                        if(outputInteger[x][y][z].length < minVal && !collapsedOutputIntegerCoordinates.contains(new Vec3d(x, y, z))) {
                             minVal = outputInteger[x][y][z].length;
                             minVec = new Vec3d(x, y, z);
                         }
@@ -867,7 +868,7 @@ public class WaveDriver {
             }
 
             //Collapse that position
-                //Pick on from the possibilites based on their percent chances
+            //Pick on from the possibilites based on their percent chances
             //Get a list of all of the potential chunks this could be
             Integer[] potential = outputInteger[(int)minVec.x][(int)minVec.y][(int)minVec.z];
             Vector<Integer> pickVec = new Vector<Integer>();
@@ -883,20 +884,97 @@ public class WaveDriver {
 
             outputInteger[(int)minVec.x][(int)minVec.y][(int)minVec.z] = new Integer[]{pickVec.get(picked)};
 
-
             //Update adjacent spots
             //Check if any adjacencies are empty
-            Vec3d up;
-            Vec3d down;
-            Vec3d left;
-            Vec3d right;
-            Vec3d forward;
-            Vec3d back;
-        
+            /*
+            Up - 0 (+), Down - 1 (-) - y direction
+            West - 2 (-), East - 3 (+) - x direction
+            North - 4 (-), South - 5 (+) - z direction
+            */
+            Vec3d up = new Vec3d(minVec.x, minVec.y+1, minVec.z);
+            if(withinRangeOutput(up)){
+                outputInteger[(int)up.x][(int)up.y][(int)up.z] = intersectIntegerArrays(outputInteger[(int)up.x][(int)up.y][(int)up.z], (Integer[])adj.get(picked).get(0).toArray());
+            }
+
+            Vec3d down = new Vec3d(minVec.x, minVec.y-1, minVec.z);
+            if(withinRangeOutput(down)){
+                outputInteger[(int)down.x][(int)down.y][(int)down.z] = intersectIntegerArrays(outputInteger[(int)down.x][(int)down.y][(int)down.z], (Integer[])adj.get(picked).get(1).toArray());
+            }
+
+            Vec3d east = new Vec3d(minVec.x+1, minVec.y, minVec.z);
+            if(withinRangeOutput(east)){
+                outputInteger[(int)east.x][(int)east.y][(int)east.z] = intersectIntegerArrays(outputInteger[(int)east.x][(int)east.y][(int)east.z], (Integer[])adj.get(picked).get(3).toArray());
+            }
+
+            Vec3d west = new Vec3d(minVec.x-1, minVec.y, minVec.z);
+            if(withinRangeOutput(west)){
+                outputInteger[(int)west.x][(int)west.y][(int)west.z] = intersectIntegerArrays(outputInteger[(int)west.x][(int)west.y][(int)west.z], (Integer[])adj.get(picked).get(2).toArray());
+            }
+
+            Vec3d north  = new Vec3d(minVec.x, minVec.y, minVec.z-1);
+            if(withinRangeOutput(north)){
+                outputInteger[(int)north.x][(int)north.y][(int)north.z] = intersectIntegerArrays(outputInteger[(int)north.x][(int)north.y][(int)north.z], (Integer[])adj.get(picked).get(4).toArray());
+            }
+
+            Vec3d south = new Vec3d(minVec.x, minVec.y, minVec.z+1);
+            if(withinRangeOutput(south)){
+                outputInteger[(int)south.x][(int)south.y][(int)south.z] = intersectIntegerArrays(outputInteger[(int)south.x][(int)south.y][(int)south.z], (Integer[])adj.get(picked).get(5).toArray());
+            }
+
+            collapsedOutputIntegerCoordinates.add(minVec);
         }
         //Go through each integer, and generate the chunks
+        for(int x = outputInteger.length; x >= 0; x--){
+            for(int y = outputInteger[x].length; y >= 0; y--){
+                for(int z = outputInteger[x][y].length; z >= 0; z--){
+                    GenerateChunk(integerToChunkMap.get(outputInteger[x][y][z][0]), new Vec3d(x, y, z));
+                }
+            }
+        }
 
         return 1;
+    }
+
+    private void GenerateChunk(WFCChunk c, Vec3d coor){
+        Integer[][][] r = c._chunkBlockValues;
+        for(int x = 0; x < r.length; x++){
+            for(int y = 0; y < r[x].length; y++){
+                for(int z = 0; z < r[x][y].length; z++){
+                    world.setBlockState(new BlockPos(coor.x+x, coor.y+y, coor.z+z), seenIntToBlock.get(r[x][y][z]));
+                }
+            }
+        }
+    }
+
+    private boolean withinRangeOutput(Vec3d coor){
+        int x = (int)coor.x;
+        int y = (int)coor.y;
+        int z = (int)coor.z;
+
+        if(x < 0 || y < 0 || z < 0){
+            return false;
+        } else if (x > outputInteger.length-1 || y > outputInteger[0].length-1 || z > outputInteger[0][0].length-1) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    private Integer[] intersectIntegerArrays(Object[] a, Object[] b){
+        Integer[] alpha = (Integer[]) a;
+        Integer[] beta = (Integer[]) b;
+
+        HashSet<Integer> set = new HashSet<>(); 
+     
+        set.addAll(Arrays.asList(alpha));
+        
+        set.retainAll(Arrays.asList(beta));
+        
+        //convert to array
+        Integer[] intersection = {};
+        intersection = set.toArray(intersection);
+
+        return intersection;
     }
 
     public int secondStepChunkWFC(){
