@@ -763,4 +763,326 @@ public class OldWaveDriverCode {
 
     //     return 1;
     // }
+
+    // private void RemoveEdgeBlocks(){
+
+    //     Set<BlockPos> temp = collapseMap.keySet();
+    //     Vector<BlockPos> stuff = new Vector<BlockPos>();
+
+    //     for(BlockPos b : temp ){
+    //         if(collapseMap.get(b).contains(-1)){
+    //             stuff.add(b);
+    //         }
+    //     }
+    //     ////System.out.println("Made it past adding bad blocks");
+
+    //     for(BlockPos b : stuff){
+    //         collapseMap.remove(b);
+    //         collapsed.remove(b);
+    //     }
+    // }
+
+    // //Add's the -1 adjacency to all the edges and updates the nodes on the inside
+    // private void ManipulateEdges(){
+
+    //     Vector<BlockPos> edges = new Vector<BlockPos>();
+
+    //     for(BlockPos bp : collapseMap.keySet()){
+    //         ////System.out.println("Block position: " + bp);
+    //         int x = bp.getX();
+    //         int y = bp.getY();
+    //         int z = bp.getZ();
+            
+    //         if(!collapsed.contains(bp)){ //If we have not seen this before
+    //             ////System.out.println("Inside of the if statement");
+    //             //If we are on one of the xEdges
+    //             if(x == runMax.getX() ||  x == runMin.getX()) {
+    //                 ////System.out.println("Inside of the second if statement");
+    //                 collapseMap.put(bp, new Vector<Integer>(){{add(-1);}});
+    //                 collapsed.add(bp);
+    //                 edges.add(bp);
+    //             }
+
+    //             //if we are on one of the yEdges
+    //             if(y == runMax.getY() || y == runMin.getY()) {
+    //                 collapseMap.put(bp, new Vector<Integer>(){{add(-1);}});
+    //                 collapsed.add(bp);
+    //                 edges.add(bp);
+    //             }
+
+    //             //if we are on one of the zEdges 
+    //             if(z == runMax.getZ() || z == runMin.getZ()){
+    //                 collapseMap.put(bp, new Vector<Integer>(){{add(-1);}});
+    //                 collapsed.add(bp);
+    //                 edges.add(bp);
+    //             }
+    //         }
+    //     }
+
+    //     //At this point, we should have collapsed all of the edges, so we should then close the adjacencies, and the only thing in collapsed IS the edges
+    //     for(BlockPos bp : edges){
+    //         changeSurrounding(bp, SHOULDWRAP);
+    //     }
+    // }
+
+    // //Unable to find least entropic value because it uncludes [] arrays
+    // private BlockPos findLeastEntropy(){
+
+    //     BlockPos ret = null;
+
+    //     for(BlockPos b : collapseMap.keySet()){
+    //         if(!collapsed.contains(b)){
+    //             int size1 = collapseMap.get(b).size();
+    //             int size2 = (ret == null) ? Integer.MAX_VALUE : collapseMap.get(ret).size();
+    //             if((size1 <= size2) && size1 != 0){
+    //                 ret = b;
+    //             }
+    //         }
+    //     }
+
+    //     ////System.out.println("Found block " + ret + " with least entropy of " + collapseMap.get(ret));
+
+    //     return ret;
+    // }
+
+    // private void handleSingleSurroundingChange(BlockPos target, BlockPos current, int direction, boolean shouldWrap){
+    //     Vector<Integer> thisAdj = adj.get(collapseMap.get(current).get(0)).get(direction); //Gets the current integer of the block that is at curent and then goes and finds that in adj
+    //     Vector<Integer> newAdj = new Vector<Integer>();
+
+    //     //Wrapping
+    //     if(shouldWrap){
+    //         target = wrapBlockPos(current);
+    //     }
+
+    //     if(collapseMap.containsKey(target) && !collapsed.contains(target)){ //Test if the position exists on the map AND if we have not collapsed the block before
+    //         Vector<Integer> targetAdj = collapseMap.get(target);
+    //         for(int i = 0; i < targetAdj.size(); i++){
+    //             if(thisAdj.contains(targetAdj.get(i))){
+    //                 newAdj.add(targetAdj.get(i));
+    //             }
+    //         }
+    //         collapseMap.put(target, newAdj);
+    //     }
+
+    //     // if(newAdj.size() == 0){
+    //     //     return false;
+    //     // } else {
+    //     //     return true;
+    //     // }
+    // }
+
+    // private BlockPos wrapBlockPos(BlockPos current) {
+    //     if(collapseMap.containsKey(current)){
+    //         return current;
+    //     } else {
+    //         int newX = current.getX();
+    //         int newY = current.getY();
+    //         int newZ = current.getZ();
+
+    //         //Test Run Pos 1 = 567, 65, -119
+    //         //Test Run Pos 2 = 683, 19, 210
+
+    //         int maxX = runPos1.getX() > runPos2.getX() ? runPos1.getX() : runPos2.getX(); //683
+    //         int minX = runPos1.getX() < runPos2.getX() ? runPos1.getX() : runPos2.getX(); //567
+
+    //         int maxY = runPos1.getY() > runPos2.getY() ? runPos1.getY() : runPos2.getY(); //65
+    //         int minY = runPos1.getY() < runPos2.getY() ? runPos1.getY() : runPos2.getY(); //19
+
+    //         int maxZ = runPos1.getZ() > runPos2.getZ() ? runPos1.getZ() : runPos2.getZ(); //210
+    //         int minZ = runPos1.getZ() < runPos2.getZ() ? runPos1.getZ() : runPos2.getZ(); //-119
+
+    //         if(WRAP.x == 1){
+    //             if(current.getX() > maxX){
+    //                 newX = minX;
+    //             } else if (current.getX() < minX){
+    //                 newX = maxX;
+    //             }
+    //         }
+
+    //         if(WRAP.y == 1){
+    //             if(current.getY() > maxY){
+    //                 newY = minY;
+    //             } else if (current.getY() < minY){
+    //                 newY = maxY;
+    //             }
+    //         }
+
+    //         if(WRAP.z == 1){
+    //             if(current.getZ() > maxZ){
+    //                 newZ = minZ;
+    //             } else if (current.getZ() < minZ){
+    //                 newZ = maxZ;
+    //             }
+    //         }
+           
+    //         return new BlockPos(newX, newY, newZ);
+    //     }
+        
+    // }
+    
+    // private void changeSurrounding(BlockPos current, boolean shouldWrap){
+    //     //Wrap current + direction
+    //     //Change up 0
+    //     handleSingleSurroundingChange(current.up(), current, 0, shouldWrap);
+    //     //if(!ret){
+    //     //    return false;
+    //     //}
+
+    //     //Change DOwn 1
+    //     handleSingleSurroundingChange(current.down(), current, 1, shouldWrap);
+    //     //if(!ret){
+    //     //    return false;
+    //     //}
+
+    //     //CHange West 2
+    //     handleSingleSurroundingChange(current.west(), current, 2, shouldWrap);
+    //     // if(!ret){
+    //     //     return false;
+    //     // }
+
+    //     //Change east
+    //     handleSingleSurroundingChange(current.east(), current, 3, shouldWrap);
+    //     // if(!ret){
+    //     //     return false;
+    //     // }
+
+    //     //Change north
+    //     handleSingleSurroundingChange(current.north(), current, 4, shouldWrap);
+    //     // if(!ret){
+    //     //     return false;
+    //     // }
+        
+    //     //change south
+    //     handleSingleSurroundingChange(current.south(), current, 5, shouldWrap);
+    //     // if(!ret){
+    //     //     return false;
+    //     // }
+
+    //     //return ret;
+    //     ////System.out.println(collapseMap);
+    // }
+
+    // public int secondStepChunkWFC(){
+
+    //     collapseMap = new HashMap<BlockPos, Vector<Integer>>();
+    //     collapsed = new HashSet<BlockPos>();
+
+    //     if(!hasRunFirstStep){
+    //         print("It appears you haven't run the first WFC Step");
+    //         return -1;
+    //     }
+
+    //     if(runPos1 == null || runPos2 == null){
+    //         print("Failed to validate Run Position 1 or Run Position 2" + "\n Run Position 1 is " + runPos1 + "\n Run Position 2 is " + runPos2);
+    //         return -2;
+    //     }
+        
+    //     if(world == null){
+    //         print("Failed to get world correctly");
+    //         return -3;
+    //     }
+
+    //     Vector<Integer> t = new Vector<Integer>(listOfSeenChunks.keySet());
+
+    //     //Setup minimum and maximum positions for the matrix
+    //     runMin = new BlockPos((runPos1.getX() < runPos2.getX() ? runPos1.getX() : runPos2.getX())  + chunkSize -2, 
+    //                             (runPos1.getY() < runPos2.getY() ? runPos1.getY() : runPos2.getY()) + chunkSize -2, 
+    //                             (runPos1.getZ() < runPos2.getZ() ? runPos1.getZ() : runPos2.getZ()) + chunkSize -2);
+
+    //     runMax = new BlockPos((runPos1.getX() > runPos2.getX() ? runPos1.getX() : runPos2.getX()) + 1, 
+    //                             (runPos1.getY() > runPos2.getY() ? runPos1.getY() : runPos2.getY()) + 1, 
+    //                             (runPos1.getZ() > runPos2.getZ() ? runPos1.getZ() : runPos2.getZ()) + 1);
+
+    //     //System.out.println("RunMin: " + runMin);
+    //     //System.out.println("RunMax: " + runMax);
+
+    //     //Add all possible positions to map
+    //     for(int x = runMax.getX(); x >= runMin.getX(); x--){
+    //         for(int y = runMax.getY(); y >= runMin.getY(); y--){
+    //             for(int z = runMax.getZ(); z >= runMin.getZ(); z--){
+    //                 collapseMap.put(new BlockPos(x, y, z), t);
+    //             }
+    //         }
+    //     }
+
+    //     //Expand the run position by 1 and add a ring of edge adjacencies
+    //     //AddEdges(); We don't have to run this because all it does it update the positions, we can just use runMin and runMax instead
+    //     ManipulateEdges();
+
+    //     //System.out.println("Collapse Map: " + collapseMap);
+    //     //System.out.println("Collapsed: " + collapsed);
+
+    //     int itr = 1000;
+    //     boolean done = false;
+    //     boolean validConfig = true;
+
+    //     ////System.out.println("Test 1");
+        
+    //     while(!done && itr > 0){
+    //         itr--;
+    //         ////System.out.println(collapsed.size());
+    //         if(collapsed.size() == collapseMap.keySet().size()){
+    //             done = true;
+    //             break;
+    //         }
+    //         ////System.out.println("Test 2");
+
+    //         BlockPos current = findLeastEntropy();
+
+    //         ////System.out.println("Test 3");
+
+    //         if(current == null){
+    //             //System.out.println("Found invalid entropic block");
+    //             validConfig = false;
+    //             break;
+    //         }
+
+    //         ////System.out.println("Test 4");
+
+    //         //Collapse it
+    //         if(!collapseNode(current)){
+    //             //System.out.println("Found invalid config");
+    //             validConfig = false;
+    //             break;
+    //         }
+
+    //         ////System.out.println("Test 5");
+
+    //         changeSurrounding(current, SHOULDWRAP);
+
+    //         ////System.out.println("Test 6");
+    //     }
+
+    //     ////System.out.println("Test Final");
+
+    //     RemoveEdgeBlocks();
+
+    //     runPos1 = originalRunPos1;
+    //     runPos2 = originalRunPos2;
+
+    //     if(validConfig){
+    //         return 1;
+    //     } else {
+    //         return -4;
+    //     }
+    // }
+
+    // public void GenerateChunkWorld(){
+    //     print("started to generate world");
+    //     Iterator<BlockPos> iter = collapsed.iterator();
+    //     while(iter.hasNext()){
+    //         BlockPos current = iter.next();
+
+    //         //This needs to figure out how to generate in a certain direction should the condition be met
+    //             //For now just generates the maximum block
+    //         for(int x = 0; x < chunkSize; x++){
+    //             for(int y = 0; y < chunkSize; y++){
+    //                 for(int z = 0; z < chunkSize; z++){
+    //                     world.setBlockState(current, seenIntToBlock.get(integerToChunkMap.get(collapseMap.get(current).get(0))._chunkBlockValues[x][y][z]), 1);
+    //                 }
+    //             }
+    //         }
+           
+    //     }
+    // }
 }

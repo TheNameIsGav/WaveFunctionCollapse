@@ -13,7 +13,6 @@ import java.nio.file.Path;
 import java.util.*;
 
 import org.apache.commons.lang3.StringUtils;
-import org.lwjgl.system.CallbackI.B;
 
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.Block;
@@ -29,7 +28,6 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
-import net.minecraft.world.dimension.YLevels;
 
 
 public class WaveDriver {
@@ -383,6 +381,27 @@ public class WaveDriver {
         ret = ret.substring(0, ret.length()-3);
 
         System.out.println(ret);
+    }
+
+    void Print3DArray(String label, Object[][][] array){
+        String ret = "";
+
+        for(int x = 0; x < array.length; x++){
+            ret += "[";
+            for(int y = 0; y < array[x].length; y++){
+                ret += "[";
+                for(int z = 0; z < array[x][y].length; z++){
+                    ret += array[x][y][z].toString() + ",";
+                }
+                ret = ret.substring(0, ret.length()-1);
+                ret += "],";
+            }
+            ret = ret.substring(0, ret.length()-1);
+            ret += "] , ";
+        }
+        ret = ret.substring(0, ret.length()-3);
+
+        System.out.println(label + ret);
     }
 
     void Print3DVector(Vec3d vec){
@@ -807,127 +826,187 @@ public class WaveDriver {
         collapsedOutputIntegerCoordinates = new HashSet<Vec3d>();
 
         //Go through each position in output integers and add all the possibilities for chunks
-        PrintArray("Seen chunks", listOfSeenChunks.keySet().toArray());
+        //PrintArray("Seen chunks", listOfSeenChunks.keySet().toArray());
         Integer[] temp = convertObjToInt(listOfSeenChunks.keySet().toArray());
-        PrintArray("Temp", temp);
+        //PrintArray("Temp", temp);
 
         for(int x = 0; x < xLength; x++){
             for(int y = 0; y < yLength; y++){
                 for(int z = 0; z < zLength; z++){
-                    //Print3DVector(x, y, z);
 
                     //If we are on an edge, then we make it -1 and collapse it because it has to be an edge
                     if(x == 0 || y == 0 || z == 0 || x == xLength-1 || y == yLength-1 || z == zLength-1){
-                        Print3DVector("Found edge at", x, y, z);
+                        //Print3DVector("Found edge at", x, y, z);
                         outputInteger[x][y][z] = new Integer[]{-1};
                         collapsedOutputIntegerCoordinates.add(new Vec3d(x, y, z));
                     } else {
-                        Print3DVector("Found not edge at" , x, y, z);
+                        //Print3DVector("Found not edge at" , x, y, z);
                         outputInteger[x][y][z] = temp.clone();
                     }
                 }
             }
         }
 
-        //
+        //System.out.println("Collapsed Output Size: " + collapsedOutputIntegerCoordinates.size());
+        //System.out.println("Size of output array: " + (xLength * yLength * zLength));
 
-        System.out.println("Output Integer Dimensions");
-        System.out.println("X: " + xLength);
-        System.out.println("Y: " + yLength);
-        System.out.println("Z: " + zLength);
+        //Print4DArray(outputInteger);
 
-        Print4DArray(outputInteger);
+        for(int x = 1; x < xLength-1; x++){
+            for(int y = 1; y < yLength-1; y++){
+                for(int z = 1; z < zLength-1; z++){
+                    Vec3d minVec = new Vec3d(x, y, z);
+                    Print3DVector(minVec);
+                    Integer[] potential = outputInteger[(int)minVec.x][(int)minVec.y][(int)minVec.z];
+                    Vector<Integer> pickVec = new Vector<Integer>();
 
+                    //For each int inside of potential, add a number of those int's to the pic vec. ex. [1, 1, 1, 1, 1, 2, 2, 3, 3, 3, 4]
+                    for(int i : potential) {
+                        for(int j = 0; j < listOfSeenChunks.get(i); j++){
+                            pickVec.add(i);
+                        }
+                    }
 
-        //Go through the the outputIntegers and find the one with the least entropy
+                    int picked = (int) (Math.random() * pickVec.size());
+                    outputInteger[(int)minVec.x][(int)minVec.y][(int)minVec.z] = new Integer[]{pickVec.get(picked)};
+                }
+            }
+        }
+
+        //Print4DArray(outputInteger);
+
+        // //Go through the the outputIntegers and find the one with the least entropy
         int itr = 1000;
         boolean done = false;
         
-        while(!done && itr > 0){
-            //Check if we have collapsed everything we can
-            itr--;
-            if(collapsedOutputIntegerCoordinates.size() == (xLength * yLength * zLength)) {
-                break;
-            }
+        // while(!done && itr > 0){
+        //     //Check if we have collapsed everything we can
+        //     itr--;
 
 
-            //If we are not done, find the least Entropic position within the array
-            //Go through all elements and find the min val of the length
-            int minVal = Integer.MAX_VALUE;
-            Vec3d minVec = new Vec3d(0,0,0);
+        //     if(collapsedOutputIntegerCoordinates.size() == (xLength * yLength * zLength)) {
+        //         done = true;
+        //         break;
+        //     }
 
-            for(int x = 0; x < xLength; x++) {
-                for(int y = 0; y < yLength; y++) {
-                    for(int z = 0; z < zLength; z++) {
-                        if(outputInteger[x][y][z].length < minVal && !collapsedOutputIntegerCoordinates.contains(new Vec3d(x, y, z))) {
-                            minVal = outputInteger[x][y][z].length;
-                            minVec = new Vec3d(x, y, z);
-                        }
-                    }
-                }
-            }
 
-            //Collapse that position
-            //Pick on from the possibilites based on their percent chances
-            //Get a list of all of the potential chunks this could be
-            Integer[] potential = outputInteger[(int)minVec.x][(int)minVec.y][(int)minVec.z];
-            Vector<Integer> pickVec = new Vector<Integer>();
+        //     //If we are not done, find the least Entropic position within the array
+        //     //Go through all elements and find the min val of the length
+        //     int minVal = Integer.MAX_VALUE;
+        //     Vec3d minVec = new Vec3d(0,0,0);
 
-            //For each int inside of potential, add a number of those int's to the pic vec. ex. [1, 1, 1, 1, 1, 2, 2, 3, 3, 3, 4]
-            for(int i : potential) {
-                for(int j = 0; j < listOfSeenChunks.get(i); j++){
-                    pickVec.add(i);
-                }
-            }
+        //     for(int x = 0; x < xLength; x++) {
+        //         for(int y = 0; y < yLength; y++) {
+        //             for(int z = 0; z < zLength; z++) {
+        //                 if(outputInteger[x][y][z].length < minVal && !collapsedOutputIntegerCoordinates.contains(new Vec3d(x, y, z))) {
+        //                     minVal = outputInteger[x][y][z].length;
+        //                     minVec = new Vec3d(x, y, z);
+        //                 }
+        //             }
+        //         }
+        //     }
+
+        //     //Collapse that position
+        //     //Pick on from the possibilites based on their percent chances
+        //     //Get a list of all of the potential chunks this could be
+        //     Integer[] potential = temp;//outputInteger[(int)minVec.x][(int)minVec.y][(int)minVec.z];
+        //     Vector<Integer> pickVec = new Vector<Integer>();
+
+        //     //For each int inside of potential, add a number of those int's to the pic vec. ex. [1, 1, 1, 1, 1, 2, 2, 3, 3, 3, 4]
+        //     for(int i : potential) {
+        //         for(int j = 0; j < listOfSeenChunks.get(i); j++){
+        //             pickVec.add(i);
+        //         }
+        //     }
             
-            int picked = (int) (Math.random() * pickVec.size());
+        //     int picked = (int) (Math.random() * pickVec.size());
 
-            outputInteger[(int)minVec.x][(int)minVec.y][(int)minVec.z] = new Integer[]{pickVec.get(picked)};
+        //     outputInteger[(int)minVec.x][(int)minVec.y][(int)minVec.z] = new Integer[]{pickVec.get(picked)};
 
-            //Update adjacent spots
-            //Check if any adjacencies are empty
-            /*
-            Up - 0 (+), Down - 1 (-) - y direction
-            West - 2 (-), East - 3 (+) - x direction
-            North - 4 (-), South - 5 (+) - z direction
-            */
-            Vec3d up = new Vec3d(minVec.x, minVec.y+1, minVec.z);
-            if(withinRangeOutput(up)){
-                outputInteger[(int)up.x][(int)up.y][(int)up.z] = intersectIntegerArrays(outputInteger[(int)up.x][(int)up.y][(int)up.z], (Integer[])adj.get(picked).get(0).toArray());
+        //     //Update adjacent spots
+        //     //Check if any adjacencies are empty
+        //     /*
+        //     Up - 0 (+), Down - 1 (-) - y direction
+        //     West - 2 (-), East - 3 (+) - x direction
+        //     North - 4 (-), South - 5 (+) - z direction
+        //     */
+        //     Vec3d up = new Vec3d(minVec.x, minVec.y+1, minVec.z);
+        //     if(withinRangeOutput(up)){
+        //         outputInteger[(int)up.x][(int)up.y][(int)up.z] = intersectIntegerArrays(outputInteger[(int)up.x][(int)up.y][(int)up.z], (Integer[])adj.get(picked).get(0).toArray());
+        //     }
+
+        //     Vec3d down = new Vec3d(minVec.x, minVec.y-1, minVec.z);
+        //     if(withinRangeOutput(down)){
+        //         outputInteger[(int)down.x][(int)down.y][(int)down.z] = intersectIntegerArrays(outputInteger[(int)down.x][(int)down.y][(int)down.z], (Integer[])adj.get(picked).get(1).toArray());
+        //     }
+
+        //     Vec3d east = new Vec3d(minVec.x+1, minVec.y, minVec.z);
+        //     if(withinRangeOutput(east)){
+        //         outputInteger[(int)east.x][(int)east.y][(int)east.z] = intersectIntegerArrays(outputInteger[(int)east.x][(int)east.y][(int)east.z], (Integer[])adj.get(picked).get(3).toArray());
+        //     }
+
+        //     Vec3d west = new Vec3d(minVec.x-1, minVec.y, minVec.z);
+        //     if(withinRangeOutput(west)){
+        //         outputInteger[(int)west.x][(int)west.y][(int)west.z] = intersectIntegerArrays(outputInteger[(int)west.x][(int)west.y][(int)west.z], (Integer[])adj.get(picked).get(2).toArray());
+        //     }
+
+        //     Vec3d north  = new Vec3d(minVec.x, minVec.y, minVec.z-1);
+        //     if(withinRangeOutput(north)){
+        //         outputInteger[(int)north.x][(int)north.y][(int)north.z] = intersectIntegerArrays(outputInteger[(int)north.x][(int)north.y][(int)north.z], (Integer[])adj.get(picked).get(4).toArray());
+        //     }
+
+        //     Vec3d south = new Vec3d(minVec.x, minVec.y, minVec.z+1);
+        //     if(withinRangeOutput(south)){
+        //         outputInteger[(int)south.x][(int)south.y][(int)south.z] = intersectIntegerArrays(outputInteger[(int)south.x][(int)south.y][(int)south.z], (Integer[])adj.get(picked).get(5).toArray());
+        //     }
+
+        //     collapsedOutputIntegerCoordinates.add(minVec);
+        // }
+
+
+        //Shrink OutputIntegers to get rid of edges
+        Integer[][][] outputIntegerRefined = new Integer[xLength-2][yLength-2][zLength-2];
+        for(int x = 1; x < xLength-1; x++){
+            for(int y = 1; y < yLength-1; y++){
+                for(int z = 1; z < zLength-1; z++){
+                    outputIntegerRefined[x-1][y-1][z-1] = outputInteger[x][y][z][0];
+                } 
             }
-
-            Vec3d down = new Vec3d(minVec.x, minVec.y-1, minVec.z);
-            if(withinRangeOutput(down)){
-                outputInteger[(int)down.x][(int)down.y][(int)down.z] = intersectIntegerArrays(outputInteger[(int)down.x][(int)down.y][(int)down.z], (Integer[])adj.get(picked).get(1).toArray());
-            }
-
-            Vec3d east = new Vec3d(minVec.x+1, minVec.y, minVec.z);
-            if(withinRangeOutput(east)){
-                outputInteger[(int)east.x][(int)east.y][(int)east.z] = intersectIntegerArrays(outputInteger[(int)east.x][(int)east.y][(int)east.z], (Integer[])adj.get(picked).get(3).toArray());
-            }
-
-            Vec3d west = new Vec3d(minVec.x-1, minVec.y, minVec.z);
-            if(withinRangeOutput(west)){
-                outputInteger[(int)west.x][(int)west.y][(int)west.z] = intersectIntegerArrays(outputInteger[(int)west.x][(int)west.y][(int)west.z], (Integer[])adj.get(picked).get(2).toArray());
-            }
-
-            Vec3d north  = new Vec3d(minVec.x, minVec.y, minVec.z-1);
-            if(withinRangeOutput(north)){
-                outputInteger[(int)north.x][(int)north.y][(int)north.z] = intersectIntegerArrays(outputInteger[(int)north.x][(int)north.y][(int)north.z], (Integer[])adj.get(picked).get(4).toArray());
-            }
-
-            Vec3d south = new Vec3d(minVec.x, minVec.y, minVec.z+1);
-            if(withinRangeOutput(south)){
-                outputInteger[(int)south.x][(int)south.y][(int)south.z] = intersectIntegerArrays(outputInteger[(int)south.x][(int)south.y][(int)south.z], (Integer[])adj.get(picked).get(5).toArray());
-            }
-
-            collapsedOutputIntegerCoordinates.add(minVec);
         }
-        //Go through each integer, and generate the chunks
-        for(int x = outputInteger.length; x >= 0; x--){
-            for(int y = outputInteger[x].length; y >= 0; y--){
-                for(int z = outputInteger[x][y].length; z >= 0; z--){
-                    GenerateChunk(integerToChunkMap.get(outputInteger[x][y][z][0]), new Vec3d(x, y, z));
+
+        Print3DArray("Refined output: " , outputIntegerRefined);
+
+
+        //Go through each integer, and generate the chunks - think about if this is going the correct way, or if I need to rethink my coordinate pairs
+        for(int x = 0; x < outputIntegerRefined.length; x++){
+            for(int y = 0; y < outputIntegerRefined[x].length; y++){
+                for(int z = 0; z < outputIntegerRefined[x][y].length; z++){
+                    WFCChunk c = integerToChunkMap.get(outputIntegerRefined[x][y][z]);
+                    Vec3d coor = new Vec3d(runMax.getX()-x, runMax.getY() - y, runMax.getZ() - z);
+                    if(x == outputIntegerRefined.length-1 && y == outputIntegerRefined[x].length-1){ //X and Y
+                        GenerateChunkXsAndYs(c, coor);
+                    } else 
+                    if(x == outputIntegerRefined.length-1 && z == outputIntegerRefined[x][y].length-1){ //X and Z
+                        GenerateChunkXsAndZs(c, coor);
+                    } else
+                    if(z == outputIntegerRefined[x][y].length-1 && y == outputIntegerRefined[x].length-1) { // Z and y
+                        GenerateChunkZsAndYs(c, coor);
+                    } else 
+                    if(x == outputIntegerRefined.length-1 && z == outputIntegerRefined[x][y].length-1 && y == outputIntegerRefined[x].length-1) { //X y and Z
+                        GenerateChunkXYAndZs(c, coor);
+                    } else 
+                    if(x == outputIntegerRefined.length-1){
+                        GenerateChunkXs(c, coor);
+                    } else
+                    if(y == outputIntegerRefined[x].length-1){
+                        GenerateChunkYs(c, coor);
+                    } else
+                    if(z == outputIntegerRefined[x][y].length-1){
+                        GenerateChunkZs(c, coor);
+                    } else {
+                        GenerateChunkPartial(c, coor);
+                    }
+                    
                 }
             }
         }
@@ -935,16 +1014,70 @@ public class WaveDriver {
         return 1;
     }
 
-    private void GenerateChunk(WFCChunk c, Vec3d coor){
+    private void GenerateChunkXsAndYs(WFCChunk c, Vec3d coor) {
         Integer[][][] r = c._chunkBlockValues;
         for(int x = 0; x < r.length; x++){
             for(int y = 0; y < r[x].length; y++){
-                for(int z = 0; z < r[x][y].length; z++){
-                    world.setBlockState(new BlockPos(coor.x+x, coor.y+y, coor.z+z), seenIntToBlock.get(r[x][y][z]));
+                world.setBlockState(new BlockPos(coor.x-x, coor.y-y, coor.z), seenIntToBlock.get(r[x][y][0]));
+            }
+        }
+    }
+
+    private void GenerateChunkXsAndZs(WFCChunk c, Vec3d coor) {
+        Integer[][][] r = c._chunkBlockValues;
+        for(int x = 0; x < r.length; x++){
+            for(int z = 0; z < r[x][0].length; z++){
+                world.setBlockState(new BlockPos(coor.x-x, coor.y, coor.z-z), seenIntToBlock.get(r[x][0][z]));
+            }
+        }
+    }
+
+    private void GenerateChunkZsAndYs(WFCChunk c, Vec3d coor) {
+        Integer[][][] r = c._chunkBlockValues;
+        for(int y = 0; y < r[0].length; y++){
+            for(int z = 0; z < r[0][y].length; z++){
+                world.setBlockState(new BlockPos(coor.x, coor.y-y, coor.z-z), seenIntToBlock.get(r[0][y][z]));
+            }
+        }
+    }
+
+    private void GenerateChunkXYAndZs(WFCChunk c, Vec3d coor) {
+        Integer[][][] r = c._chunkBlockValues;
+        for(int x = 0; x < r.length; x++) {
+            for(int y = 0; y < r[0].length; y++){
+                for(int z = 0; z < r[0][y].length; z++){
+                    world.setBlockState(new BlockPos(coor.x-x, coor.y-y, coor.z-z), seenIntToBlock.get(r[x][y][z]));
                 }
             }
         }
     }
+
+    private void GenerateChunkXs(WFCChunk c, Vec3d coor) {
+        Integer[][][] r = c._chunkBlockValues;
+        for(int x = 0; x < r.length; x++){
+            world.setBlockState(new BlockPos(coor.x-x, coor.y, coor.z), seenIntToBlock.get(r[x][0][0]));
+        }
+    }
+
+    private void GenerateChunkYs(WFCChunk c, Vec3d coor) {
+        Integer[][][] r = c._chunkBlockValues;
+        for(int y = 0; y < r[0].length; y++){
+            world.setBlockState(new BlockPos(coor.x, coor.y-y, coor.z), seenIntToBlock.get(r[0][y][0]));
+        }
+    }
+    
+    private void GenerateChunkZs(WFCChunk c, Vec3d coor) {
+        Integer[][][] r = c._chunkBlockValues;
+        for(int z = 0; z < r[0][0].length; z++){
+            world.setBlockState(new BlockPos(coor.x, coor.y, coor.z-z), seenIntToBlock.get(r[0][0][z]));
+        }
+    }
+
+    private void GenerateChunkPartial(WFCChunk c, Vec3d coor){
+        Integer[][][] r = c._chunkBlockValues;
+        world.setBlockState(new BlockPos(coor.x, coor.y, coor.z), seenIntToBlock.get(r[0][0][0]));
+    }
+
 
     private boolean withinRangeOutput(Vec3d coor){
         int x = (int)coor.x;
@@ -977,130 +1110,6 @@ public class WaveDriver {
         return intersection;
     }
 
-    public int secondStepChunkWFC(){
-
-        collapseMap = new HashMap<BlockPos, Vector<Integer>>();
-        collapsed = new HashSet<BlockPos>();
-
-        if(!hasRunFirstStep){
-            print("It appears you haven't run the first WFC Step");
-            return -1;
-        }
-
-        if(runPos1 == null || runPos2 == null){
-            print("Failed to validate Run Position 1 or Run Position 2" + "\n Run Position 1 is " + runPos1 + "\n Run Position 2 is " + runPos2);
-            return -2;
-        }
-        
-        if(world == null){
-            print("Failed to get world correctly");
-            return -3;
-        }
-
-        Vector<Integer> t = new Vector<Integer>(listOfSeenChunks.keySet());
-
-        //Setup minimum and maximum positions for the matrix
-        runMin = new BlockPos((runPos1.getX() < runPos2.getX() ? runPos1.getX() : runPos2.getX())  + chunkSize -2, 
-                                (runPos1.getY() < runPos2.getY() ? runPos1.getY() : runPos2.getY()) + chunkSize -2, 
-                                (runPos1.getZ() < runPos2.getZ() ? runPos1.getZ() : runPos2.getZ()) + chunkSize -2);
-
-        runMax = new BlockPos((runPos1.getX() > runPos2.getX() ? runPos1.getX() : runPos2.getX()) + 1, 
-                                (runPos1.getY() > runPos2.getY() ? runPos1.getY() : runPos2.getY()) + 1, 
-                                (runPos1.getZ() > runPos2.getZ() ? runPos1.getZ() : runPos2.getZ()) + 1);
-
-        //System.out.println("RunMin: " + runMin);
-        //System.out.println("RunMax: " + runMax);
-
-        //Add all possible positions to map
-        for(int x = runMax.getX(); x >= runMin.getX(); x--){
-            for(int y = runMax.getY(); y >= runMin.getY(); y--){
-                for(int z = runMax.getZ(); z >= runMin.getZ(); z--){
-                    collapseMap.put(new BlockPos(x, y, z), t);
-                }
-            }
-        }
-
-        //Expand the run position by 1 and add a ring of edge adjacencies
-        //AddEdges(); We don't have to run this because all it does it update the positions, we can just use runMin and runMax instead
-        ManipulateEdges();
-
-        //System.out.println("Collapse Map: " + collapseMap);
-        //System.out.println("Collapsed: " + collapsed);
-
-        int itr = 1000;
-        boolean done = false;
-        boolean validConfig = true;
-
-        ////System.out.println("Test 1");
-        
-        while(!done && itr > 0){
-            itr--;
-            ////System.out.println(collapsed.size());
-            if(collapsed.size() == collapseMap.keySet().size()){
-                done = true;
-                break;
-            }
-            ////System.out.println("Test 2");
-
-            BlockPos current = findLeastEntropy();
-
-            ////System.out.println("Test 3");
-
-            if(current == null){
-                //System.out.println("Found invalid entropic block");
-                validConfig = false;
-                break;
-            }
-
-            ////System.out.println("Test 4");
-
-            //Collapse it
-            if(!collapseNode(current)){
-                //System.out.println("Found invalid config");
-                validConfig = false;
-                break;
-            }
-
-            ////System.out.println("Test 5");
-
-            changeSurrounding(current, SHOULDWRAP);
-
-            ////System.out.println("Test 6");
-        }
-
-        ////System.out.println("Test Final");
-
-        RemoveEdgeBlocks();
-
-        runPos1 = originalRunPos1;
-        runPos2 = originalRunPos2;
-
-        if(validConfig){
-            return 1;
-        } else {
-            return -4;
-        }
-    }
-
-    public void GenerateChunkWorld(){
-        print("started to generate world");
-        Iterator<BlockPos> iter = collapsed.iterator();
-        while(iter.hasNext()){
-            BlockPos current = iter.next();
-
-            //This needs to figure out how to generate in a certain direction should the condition be met
-                //For now just generates the maximum block
-            for(int x = 0; x < chunkSize; x++){
-                for(int y = 0; y < chunkSize; y++){
-                    for(int z = 0; z < chunkSize; z++){
-                        world.setBlockState(current, seenIntToBlock.get(integerToChunkMap.get(collapseMap.get(current).get(0))._chunkBlockValues[x][y][z]), 1);
-                    }
-                }
-            }
-           
-        }
-    }
-
     public int secondStepWrapper(int runs){
         print("Running WFC with " + runs + " runs.");
         int ret = 0;
@@ -1120,204 +1129,6 @@ public class WaveDriver {
         }
 
         return ret;
-    }
-
-    private void RemoveEdgeBlocks(){
-
-        Set<BlockPos> temp = collapseMap.keySet();
-        Vector<BlockPos> stuff = new Vector<BlockPos>();
-
-        for(BlockPos b : temp ){
-            if(collapseMap.get(b).contains(-1)){
-                stuff.add(b);
-            }
-        }
-        ////System.out.println("Made it past adding bad blocks");
-
-        for(BlockPos b : stuff){
-            collapseMap.remove(b);
-            collapsed.remove(b);
-        }
-    }
-
-    //Add's the -1 adjacency to all the edges and updates the nodes on the inside
-    private void ManipulateEdges(){
-
-        Vector<BlockPos> edges = new Vector<BlockPos>();
-
-        for(BlockPos bp : collapseMap.keySet()){
-            ////System.out.println("Block position: " + bp);
-            int x = bp.getX();
-            int y = bp.getY();
-            int z = bp.getZ();
-            
-            if(!collapsed.contains(bp)){ //If we have not seen this before
-                ////System.out.println("Inside of the if statement");
-                //If we are on one of the xEdges
-                if(x == runMax.getX() ||  x == runMin.getX()) {
-                    ////System.out.println("Inside of the second if statement");
-                    collapseMap.put(bp, new Vector<Integer>(){{add(-1);}});
-                    collapsed.add(bp);
-                    edges.add(bp);
-                }
-
-                //if we are on one of the yEdges
-                if(y == runMax.getY() || y == runMin.getY()) {
-                    collapseMap.put(bp, new Vector<Integer>(){{add(-1);}});
-                    collapsed.add(bp);
-                    edges.add(bp);
-                }
-
-                //if we are on one of the zEdges 
-                if(z == runMax.getZ() || z == runMin.getZ()){
-                    collapseMap.put(bp, new Vector<Integer>(){{add(-1);}});
-                    collapsed.add(bp);
-                    edges.add(bp);
-                }
-            }
-        }
-
-        //At this point, we should have collapsed all of the edges, so we should then close the adjacencies, and the only thing in collapsed IS the edges
-        for(BlockPos bp : edges){
-            changeSurrounding(bp, SHOULDWRAP);
-        }
-    }
-
-    //Unable to find least entropic value because it uncludes [] arrays
-    private BlockPos findLeastEntropy(){
-
-        BlockPos ret = null;
-
-        for(BlockPos b : collapseMap.keySet()){
-            if(!collapsed.contains(b)){
-                int size1 = collapseMap.get(b).size();
-                int size2 = (ret == null) ? Integer.MAX_VALUE : collapseMap.get(ret).size();
-                if((size1 <= size2) && size1 != 0){
-                    ret = b;
-                }
-            }
-        }
-
-        ////System.out.println("Found block " + ret + " with least entropy of " + collapseMap.get(ret));
-
-        return ret;
-    }
-
-    private void handleSingleSurroundingChange(BlockPos target, BlockPos current, int direction, boolean shouldWrap){
-        Vector<Integer> thisAdj = adj.get(collapseMap.get(current).get(0)).get(direction); //Gets the current integer of the block that is at curent and then goes and finds that in adj
-        Vector<Integer> newAdj = new Vector<Integer>();
-
-        //Wrapping
-        if(shouldWrap){
-            target = wrapBlockPos(current);
-        }
-
-        if(collapseMap.containsKey(target) && !collapsed.contains(target)){ //Test if the position exists on the map AND if we have not collapsed the block before
-            Vector<Integer> targetAdj = collapseMap.get(target);
-            for(int i = 0; i < targetAdj.size(); i++){
-                if(thisAdj.contains(targetAdj.get(i))){
-                    newAdj.add(targetAdj.get(i));
-                }
-            }
-            collapseMap.put(target, newAdj);
-        }
-
-        // if(newAdj.size() == 0){
-        //     return false;
-        // } else {
-        //     return true;
-        // }
-    }
-
-    private BlockPos wrapBlockPos(BlockPos current) {
-        if(collapseMap.containsKey(current)){
-            return current;
-        } else {
-            int newX = current.getX();
-            int newY = current.getY();
-            int newZ = current.getZ();
-
-            //Test Run Pos 1 = 567, 65, -119
-            //Test Run Pos 2 = 683, 19, 210
-
-            int maxX = runPos1.getX() > runPos2.getX() ? runPos1.getX() : runPos2.getX(); //683
-            int minX = runPos1.getX() < runPos2.getX() ? runPos1.getX() : runPos2.getX(); //567
-
-            int maxY = runPos1.getY() > runPos2.getY() ? runPos1.getY() : runPos2.getY(); //65
-            int minY = runPos1.getY() < runPos2.getY() ? runPos1.getY() : runPos2.getY(); //19
-
-            int maxZ = runPos1.getZ() > runPos2.getZ() ? runPos1.getZ() : runPos2.getZ(); //210
-            int minZ = runPos1.getZ() < runPos2.getZ() ? runPos1.getZ() : runPos2.getZ(); //-119
-
-            if(WRAP.x == 1){
-                if(current.getX() > maxX){
-                    newX = minX;
-                } else if (current.getX() < minX){
-                    newX = maxX;
-                }
-            }
-
-            if(WRAP.y == 1){
-                if(current.getY() > maxY){
-                    newY = minY;
-                } else if (current.getY() < minY){
-                    newY = maxY;
-                }
-            }
-
-            if(WRAP.z == 1){
-                if(current.getZ() > maxZ){
-                    newZ = minZ;
-                } else if (current.getZ() < minZ){
-                    newZ = maxZ;
-                }
-            }
-           
-            return new BlockPos(newX, newY, newZ);
-        }
-        
-    }
-    
-    private void changeSurrounding(BlockPos current, boolean shouldWrap){
-        //Wrap current + direction
-        //Change up 0
-        handleSingleSurroundingChange(current.up(), current, 0, shouldWrap);
-        //if(!ret){
-        //    return false;
-        //}
-
-        //Change DOwn 1
-        handleSingleSurroundingChange(current.down(), current, 1, shouldWrap);
-        //if(!ret){
-        //    return false;
-        //}
-
-        //CHange West 2
-        handleSingleSurroundingChange(current.west(), current, 2, shouldWrap);
-        // if(!ret){
-        //     return false;
-        // }
-
-        //Change east
-        handleSingleSurroundingChange(current.east(), current, 3, shouldWrap);
-        // if(!ret){
-        //     return false;
-        // }
-
-        //Change north
-        handleSingleSurroundingChange(current.north(), current, 4, shouldWrap);
-        // if(!ret){
-        //     return false;
-        // }
-        
-        //change south
-        handleSingleSurroundingChange(current.south(), current, 5, shouldWrap);
-        // if(!ret){
-        //     return false;
-        // }
-
-        //return ret;
-        ////System.out.println(collapseMap);
     }
 
     public int testCollapseNode(){
