@@ -118,22 +118,15 @@ public class WFC implements ModInitializer {
 					})));
 		});
 
-		CommandRegistrationCallback.EVENT.register((dispatcher, dedicated) -> {
-			dispatcher.register(CommandManager.literal("collapsetest").executes(context -> {
-				waveDriver.testCollapseNode();
-				return 1;
-			}));
-		});
-
-		CommandRegistrationCallback.EVENT.register((dispatcher, dedicated) -> {
-			dispatcher.register(CommandManager.literal("chunkSize")
-			.then(CommandManager.argument("num", IntegerArgumentType.integer())
-				.executes(context -> {
-					int num = IntegerArgumentType.getInteger(context, "num");
-					waveDriver.chunkSize = num;
-					return 1;
-				})));
-		});
+		// CommandRegistrationCallback.EVENT.register((dispatcher, dedicated) -> {
+		// 	dispatcher.register(CommandManager.literal("chunkSize")
+		// 	.then(CommandManager.argument("num", IntegerArgumentType.integer())
+		// 		.executes(context -> {
+		// 			int num = IntegerArgumentType.getInteger(context, "num");
+		// 			waveDriver.chunkSize = num;
+		// 			return 1;
+		// 		})));
+		// });
 
 		CommandRegistrationCallback.EVENT.register((dispatcher, dedicated)-> {
 			dispatcher.register(CommandManager.literal("debugChunks").executes(context -> {
