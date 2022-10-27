@@ -513,8 +513,8 @@ public class WaveDriver {
 
     public int firstStepWFCChunks(){
 
-        pos1 = new BlockPos(98, 98, 100);
-        pos2 = new BlockPos(103, 103, 105);
+        pos1 = new BlockPos(121, 6, 93);
+        pos2 = new BlockPos(110, 22, 104);
 
         if(pos1 == null || pos2 == null){
             print("Failed to validate Position 1 or Position 2" + "\n Position 1 is " + pos1 + "\n Position 2 is " + pos2);
@@ -562,9 +562,9 @@ public class WaveDriver {
         //int j = buildAdjacenciesChunks();
         hasRunFirstStep = true;
         //Print3DArray(inputIntegersGrid);
-        System.out.println(integerToChunkMap);
-        System.out.println(seenIntToBlock);
-        System.out.println(adj);
+        //System.out.println(integerToChunkMap);
+        //System.out.println(seenIntToBlock);
+        System.out.println("Adjs: " + adj);
 
         return 1;
     }
@@ -639,10 +639,8 @@ public class WaveDriver {
     */
     //Generates adjacencies for integers within the inputIntegersGrid
     private void createIntegerGridAssocs() {
-
         
         adj.put(-1, generateNew2DVector());
-        
 
         for(int x = inputIntegersGrid.length-1; x >=0 ; x--){
             for(int y = inputIntegersGrid[0].length-1; y >= 0 ; y--){
@@ -682,6 +680,8 @@ public class WaveDriver {
     //Associates the integer at position curr with the adjacencies for the integer id within the adjacency matrix
     private void integerGridAssocHelper(Vec3d coor, int direction, int id) {
 
+        //Print3DVector("Curr Coordinate: ", coor);
+
         if(withinRange(coor)){
             //Put the value at the coordinate of up into the adjacencies of the int
             Vector<Integer> originalAdjs = adj.get(id).get(direction);
@@ -692,6 +692,7 @@ public class WaveDriver {
                 adj.get(id).set(direction, originalAdjs);
             }
         } else { 
+            //System.out.println("Coordinate is outside of range");
             //Put -1 into the adjacencies of the int, and put this id into -1
             Vector<Integer> originalAdjs = adj.get(id).get(direction);
             int target = -1;
@@ -705,16 +706,22 @@ public class WaveDriver {
             switch(direction){
                 case 0:
                     x = 1;
+                    break;
                 case 1:
                     x = 0;
+                    break;
                 case 2:
                     x = 3;
+                    break;
                 case 3:
                     x = 2;
+                    break;
                 case 4:
                     x = 5;
+                    break;
                 case 5:
                     x = 4;
+                    break;
             }
 
             Vector<Integer> edgeAdjs = adj.get(-1).get(x);
@@ -758,6 +765,8 @@ public class WaveDriver {
                 }
             }
         }
+
+        System.out.println("Inside validate all blocks: " + seenBlocksToInt);
     }
 
     //Given a starting coordinate, returns the blocks inside that chunk
@@ -828,8 +837,8 @@ public class WaveDriver {
     Integer[][][][] outputInteger;
     public int secondStepRevamped() {
 
-        runPos1 = new BlockPos(110, 110, 110);
-        runPos2 = new BlockPos(120, 120, 120);
+        runPos1 = new BlockPos(102, 6, 92);
+        runPos2 = new BlockPos(85, 22, 112);
 
         //Decrease the size by the chunk amount to convert to integers
         runMin = new BlockPos((runPos1.getX() < runPos2.getX() ? runPos1.getX() : runPos2.getX())
@@ -851,10 +860,6 @@ public class WaveDriver {
         collapsedOutputIntegerCoordinates = new HashSet<Vec3d>();
 
         //Go through each position in output integers and add all the possibilities for chunks
-        //PrintArray("Seen chunks", listOfSeenChunks.keySet().toArray());
-        Integer[] temp = convertObjToInt(listOfSeenChunks.keySet().toArray());
-        //PrintArray("Temp", temp);
-
         for(int x = 0; x < xLength; x++){
             for(int y = 0; y < yLength; y++){
                 for(int z = 0; z < zLength; z++){
@@ -866,40 +871,86 @@ public class WaveDriver {
                         collapsedOutputIntegerCoordinates.add(new Vec3d(x, y, z));
                     } else {
                         //Print3DVector("Found not edge at" , x, y, z);
-                        outputInteger[x][y][z] = temp.clone();
+                        Integer[] temp = convertObjToInt(listOfSeenChunks.keySet().toArray());
+                        outputInteger[x][y][z] = temp;
                     }
                 }
             }
         }
 
-        //System.out.println("Collapsed Output Size: " + collapsedOutputIntegerCoordinates.size());
-        //System.out.println("Size of output array: " + (xLength * yLength * zLength));
+        //Go through all of our edges (i.e. every value in collapsed nodes) and reflect their adjcencies inwards
+        Object[] edges = collapsedOutputIntegerCoordinates.toArray();
+        for (Object oedge : edges) {
+            Vec3d edge;
+            if(oedge instanceof Vec3d){
+                edge = (Vec3d) oedge;
+            } else {
+                System.out.println("Shouldn't get here");
+                break;
+            }
 
+            Vec3d up = new Vec3d(edge.x, edge.y+1, edge.z);
+            if(withinRangeOutput(up) && !collapsedOutputIntegerCoordinates.contains(up)){
+                Vector<Vector<Integer>> picker = adj.get(-1);
+                Vector<Integer> possibilities = picker.get(3);
+                Integer[] converted = convertObjToInt(possibilities.toArray());
+                Integer[] current = outputInteger[(int)up.x][(int)up.y][(int)up.z];
+                outputInteger[(int)up.x][(int)up.y][(int)up.z] = intersectIntegerArrays(current, converted);
+            }
+
+            Vec3d down = new Vec3d(edge.x, edge.y-1, edge.z);
+            if(withinRangeOutput(down) && !collapsedOutputIntegerCoordinates.contains(down)){
+                Vector<Vector<Integer>> picker = adj.get(-1);
+                Vector<Integer> possibilities = picker.get(3);
+                Integer[] converted = convertObjToInt(possibilities.toArray());
+                Integer[] current = outputInteger[(int)down.x][(int)down.y][(int)down.z];
+
+                outputInteger[(int)down.x][(int)down.y][(int)down.z] = intersectIntegerArrays(current, converted);
+            }
+
+            Vec3d east = new Vec3d(edge.x+1, edge.y, edge.z);
+            if(withinRangeOutput(east) && !collapsedOutputIntegerCoordinates.contains(east)){
+                Vector<Vector<Integer>> picker = adj.get(-1);
+                Vector<Integer> possibilities = picker.get(3);
+                Integer[] converted = convertObjToInt(possibilities.toArray());
+                Integer[] current = outputInteger[(int)east.x][(int)east.y][(int)east.z];
+
+                outputInteger[(int)east.x][(int)east.y][(int)east.z] = intersectIntegerArrays(current, converted);
+            }
+
+            Vec3d west = new Vec3d(edge.x-1, edge.y, edge.z);
+            if(withinRangeOutput(west) && !collapsedOutputIntegerCoordinates.contains(west)){
+                Vector<Vector<Integer>> picker = adj.get(-1);
+                Vector<Integer> possibilities = picker.get(2);
+                Integer[] converted = convertObjToInt(possibilities.toArray());
+                Integer[] current = outputInteger[(int)west.x][(int)west.y][(int)west.z];
+
+                outputInteger[(int)west.x][(int)west.y][(int)west.z] = intersectIntegerArrays(current, converted);
+            }
+
+            Vec3d north  = new Vec3d(edge.x, edge.y, edge.z-1);
+            if(withinRangeOutput(north) && !collapsedOutputIntegerCoordinates.contains(north)){
+                Vector<Vector<Integer>> picker = adj.get(-1);
+                Vector<Integer> possibilities = picker.get(4);
+                Integer[] converted = convertObjToInt(possibilities.toArray());
+                Integer[] current = outputInteger[(int)north.x][(int)north.y][(int)north.z];
+
+                outputInteger[(int)north.x][(int)north.y][(int)north.z] = intersectIntegerArrays(current, converted);
+            }
+
+            Vec3d south = new Vec3d(edge.x, edge.y, edge.z+1);
+            if(withinRangeOutput(south) && !collapsedOutputIntegerCoordinates.contains(south)){
+                Vector<Vector<Integer>> picker = adj.get(-1);
+                Vector<Integer> possibilities = picker.get(5);
+                Integer[] converted = convertObjToInt(possibilities.toArray());
+                Integer[] current = outputInteger[(int)south.x][(int)south.y][(int)south.z];
+
+                outputInteger[(int)south.x][(int)south.y][(int)south.z] = intersectIntegerArrays(current, converted);
+            }
+
+        }
         
-        //Print4DArray(outputInteger);
-
-        // for(int x = 1; x < xLength-1; x++){
-        //     for(int y = 1; y < yLength-1; y++){
-        //         for(int z = 1; z < zLength-1; z++){
-        //             Vec3d minVec = new Vec3d(x, y, z);
-        //             Print3DVector(minVec);
-        //             Integer[] potential = outputInteger[(int)minVec.x][(int)minVec.y][(int)minVec.z];
-        //             Vector<Integer> pickVec = new Vector<Integer>();
-
-        //             //For each int inside of potential, add a number of those int's to the pic vec. ex. [1, 1, 1, 1, 1, 2, 2, 3, 3, 3, 4]
-        //             for(int i : potential) {
-        //                 for(int j = 0; j < listOfSeenChunks.get(i); j++){
-        //                     pickVec.add(i);
-        //                 }
-        //             }
-
-        //             int picked = pickVec.get((int) (Math.random() * pickVec.size()));
-        //             outputInteger[(int)minVec.x][(int)minVec.y][(int)minVec.z] = new Integer[]{pickVec.get(picked)};
-        //         }
-        //     }
-        // }
-
-        //Print4DArray(outputInteger);
+        //System.out.println(adj);
 
         // //Go through the the outputIntegers and find the one with the least entropy
         int itr = 1000;
@@ -936,10 +987,26 @@ public class WaveDriver {
                 }
             }
 
+            //System.out.println("test1");
+
             //Collapse that position
             //Pick on from the possibilites based on their percent chances
             //Get a list of all of the potential chunks this could be
+
+            //Print3DVector("MinVec: ", minVec);
+            //System.out.println("Size of output integer is " + outputInteger.length + " by " + outputInteger[0].length + " by " + outputInteger[0][0].length);
+
+
+            if(outputInteger[(int)minVec.x][(int)minVec.y][(int)minVec.z].length == 0){ //No possibilites
+                System.out.println("Cum");
+                return -1;
+            }
+            
+            //System.out.println("Size of output: " + outputInteger[(int)minVec.x][(int)minVec.y][(int)minVec.z].length);
+            //PrintArray("Print output: " , outputInteger[(int)minVec.x][(int)minVec.y][(int)minVec.z]);
+
             Integer[] potential = outputInteger[(int)minVec.x][(int)minVec.y][(int)minVec.z];
+
             Vector<Integer> pickVec = new Vector<Integer>();
 
             //For each int inside of potential, add a number of those int's to the pic vec. ex. [1, 1, 1, 1, 1, 2, 2, 3, 3, 3, 4]
@@ -948,10 +1015,19 @@ public class WaveDriver {
                     pickVec.add(i);
                 }
             }
+
+            //System.out.println("test1.1");
             
             int picked = pickVec.get((int) (Math.random() * pickVec.size()));
 
-            outputInteger[(int)minVec.x][(int)minVec.y][(int)minVec.z] = new Integer[]{pickVec.get(picked)};
+            // PrintArray("PickVec:", pickVec.toArray());
+            // System.out.println("PickVec Size: " + pickVec.size());
+            // System.out.println("Picked Index: " + picked);
+
+            //outputInteger[(int)minVec.x][(int)minVec.y][(int)minVec.z] = new Integer[]{pickVec.get(picked)};
+            outputInteger[(int)minVec.x][(int)minVec.y][(int)minVec.z] = new Integer[]{picked};
+
+            //System.out.println("test2");
 
             //Update adjacent spots
             //Check if any adjacencies are empty
@@ -1191,9 +1267,7 @@ public class WaveDriver {
 
         print("We got out!");
 
-        if(ret == 1){
-            //GenerateChunkWorld();
-        } else {
+        if(ret == -1){
             print("Failed to find valid configuration in " + runs + " runs.");
         }
 
