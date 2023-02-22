@@ -11,9 +11,6 @@ import net.minecraft.text.LiteralText;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.registry.Registry;
 
-import java.io.IOException;
-
-import com.mojang.brigadier.arguments.IntegerArgumentType;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -45,55 +42,53 @@ public class WFC implements ModInitializer {
 				MinecraftClient mc = MinecraftClient.getInstance();
 
 				//Setup the initial requirements for the Wave Driving function
-				waveDriver.Constraint(125);
-				waveDriver.Mc(mc);
-				//int ret = waveDriver.firstStepWFC();
-				int ret = waveDriver.firstStepWFCChunks();
+				waveDriver.World(mc.world);
+				int ret = waveDriver.stage1();
 				mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("First WFC finished with value " + ret), mc.player.getUuid());
 				return 1;
 			}));
 		});
 
-		CommandRegistrationCallback.EVENT.register((dispatcher, decdicated) -> {
-			dispatcher.register(CommandManager.literal("saveToFile").executes(context -> {
-				MinecraftClient mc = MinecraftClient.getInstance();
-				try {
-					waveDriver.SaveFile();
-					mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("Successfully saved WFC Matrix to file."), mc.player.getUuid());
-				} catch (IOException e) {
-					mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("Failed to save WFC Matrix to file."), mc.player.getUuid());
-					e.printStackTrace();
-				}
+		// CommandRegistrationCallback.EVENT.register((dispatcher, decdicated) -> {
+		// 	dispatcher.register(CommandManager.literal("saveToFile").executes(context -> {
+		// 		MinecraftClient mc = MinecraftClient.getInstance();
+		// 		try {
+		// 			waveDriver.SaveFile();
+		// 			mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("Successfully saved WFC Matrix to file."), mc.player.getUuid());
+		// 		} catch (IOException e) {
+		// 			mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("Failed to save WFC Matrix to file."), mc.player.getUuid());
+		// 			e.printStackTrace();
+		// 		}
 				
-				return 1;
-			}));
-		});
+		// 		return 1;
+		// 	}));
+		// });
 
-		CommandRegistrationCallback.EVENT.register((dispatcher, decdicated) -> {
-			dispatcher.register(CommandManager.literal("loadFromFile").executes(context -> {
-				MinecraftClient mc = MinecraftClient.getInstance();
-				try {
-					waveDriver.LoadFile();
-					mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("Successfully loaded WFC Matrix from file."), mc.player.getUuid());
-				} catch (ClassNotFoundException | IOException e) {
-					mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("Failed to load WFC Matrix from file."), mc.player.getUuid());
-					e.printStackTrace();
-				}
+		// CommandRegistrationCallback.EVENT.register((dispatcher, decdicated) -> {
+		// 	dispatcher.register(CommandManager.literal("loadFromFile").executes(context -> {
+		// 		MinecraftClient mc = MinecraftClient.getInstance();
+		// 		try {
+		// 			waveDriver.LoadFile();
+		// 			mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("Successfully loaded WFC Matrix from file."), mc.player.getUuid());
+		// 		} catch (ClassNotFoundException | IOException e) {
+		// 			mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("Failed to load WFC Matrix from file."), mc.player.getUuid());
+		// 			e.printStackTrace();
+		// 		}
 
-				return 1;
-			}));
-		});
+		// 		return 1;
+		// 	}));
+		// });
 
-		CommandRegistrationCallback.EVENT.register((dispatcher, decdicated) -> {
-			dispatcher.register(CommandManager.literal("runWFC").executes(context-> {
-				MinecraftClient mc = MinecraftClient.getInstance();
-				waveDriver.Mc(mc);
+		// CommandRegistrationCallback.EVENT.register((dispatcher, decdicated) -> {
+		// 	dispatcher.register(CommandManager.literal("runWFC").executes(context-> {
+		// 		MinecraftClient mc = MinecraftClient.getInstance();
+		// 		waveDriver.Mc(mc);
 
-				int ret = waveDriver.secondStepWrapper(1);
-				mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("Second WFC finished with value " + ret), mc.player.getUuid());
-				return 1;
-			}));
-		});
+		// 		int ret = waveDriver.secondStepWrapper(1);
+		// 		mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("Second WFC finished with value " + ret), mc.player.getUuid());
+		// 		return 1;
+		// 	}));
+		// });
 
 		CommandRegistrationCallback.EVENT.register((dispatcher, decdicated) -> {
 			dispatcher.register(CommandManager.literal("constrain").executes(context-> {
@@ -103,20 +98,20 @@ public class WFC implements ModInitializer {
 			}));
 		});
 
-		CommandRegistrationCallback.EVENT.register((dispatcher, dedicated) -> {
-			dispatcher.register(CommandManager.literal("runArgs")
-				.then(CommandManager.argument("runs", IntegerArgumentType.integer())
-					.executes(context -> {
+		// CommandRegistrationCallback.EVENT.register((dispatcher, dedicated) -> {
+		// 	dispatcher.register(CommandManager.literal("runArgs")
+		// 		.then(CommandManager.argument("runs", IntegerArgumentType.integer())
+		// 			.executes(context -> {
 
-						MinecraftClient mc = MinecraftClient.getInstance();
-						waveDriver.Mc(mc);
-						int runs = IntegerArgumentType.getInteger(context, "runs");
-						int ret = waveDriver.secondStepWrapper(runs);
-						mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("Second WFC finished with value " + ret), mc.player.getUuid());
+		// 				MinecraftClient mc = MinecraftClient.getInstance();
+		// 				waveDriver.Mc(mc);
+		// 				int runs = IntegerArgumentType.getInteger(context, "runs");
+		// 				int ret = waveDriver.secondStepWrapper(runs);
+		// 				mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("Second WFC finished with value " + ret), mc.player.getUuid());
 
-						return 1;
-					})));
-		});
+		// 				return 1;
+		// 			})));
+		// });
 
 		// CommandRegistrationCallback.EVENT.register((dispatcher, dedicated) -> {
 		// 	dispatcher.register(CommandManager.literal("chunkSize")
@@ -128,13 +123,22 @@ public class WFC implements ModInitializer {
 		// 		})));
 		// });
 
-		CommandRegistrationCallback.EVENT.register((dispatcher, dedicated)-> {
-			dispatcher.register(CommandManager.literal("debugChunks").executes(context -> {
-				MinecraftClient mc = MinecraftClient.getInstance();
-				waveDriver.debugChunks(mc.player.getPos());
-				return 1;
-			}));
-		});
+		// CommandRegistrationCallback.EVENT.register((dispatcher, dedicated)-> {
+		// 	dispatcher.register(CommandManager.literal("debugChunks").executes(context -> {
+		// 		MinecraftClient mc = MinecraftClient.getInstance();
+		// 		waveDriver.debugChunks(mc.player.getPos());
+		// 		return 1;
+		// 	}));
+		// });
+
+		// CommandRegistrationCallback.EVENT.register((dispatcher, dedicated) -> {
+		// 	dispatcher.register(CommandManager.literal("testReadChunk").executes(context -> {
+		// 		MinecraftClient mc = MinecraftClient.getInstance();
+		// 		waveDriver.World(mc.world);
+		// 		waveDriver.ReadChunk();
+		// 		return 1;
+		// 	}));
+		// });
 
 		LOGGER.info("Hello Fabric world!");
 
