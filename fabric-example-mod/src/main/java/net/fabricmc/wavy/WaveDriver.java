@@ -222,8 +222,9 @@ public class WaveDriver {
     }
 //#endregion
 
-//#region Stage 1 Driver
+//#region Base Driver
 
+//Read all the information into the grid's and create chunks
 public int stage1(){
     maximizeCoordinates();
     
@@ -235,9 +236,101 @@ public int stage1(){
     int[][][] chunkGrid = convertIntegersToChunks(grid);
     System.out.println(grid[0][1][0] + " " + grid[1][1][0]);
     System.out.println(grid[0][0][0] + " " + grid[1][0][0]);
+
+    stage2(chunkGrid);
     
     return 1;
 }
+
+//Setup all the adjacencies for the chunks
+public int stage2(int[][][] chunkGrid){
+    int width = chunkGrid.length - 1;
+    int height = chunkGrid[0].length - 1;
+    int depth = chunkGrid[0][0].length - 1;
+
+    HashMap<Integer, List<HashSet<Integer>>> adjacencies = new HashMap<>();
+
+    try {
+        for (int x = 0; x <= width; x++) {
+            for (int y = 0; y <= height; y++) {
+                for (int z = 0; z <= depth; z++) {
+                    
+                    //If the value doesn't exist yet then add it
+                    int val = chunkGrid[x][y][z];
+                    if(!adjacencies.keySet().contains(val)){
+                        adjacencies.put(val, 
+                            new ArrayList<HashSet<Integer>>(){
+                                {
+                                    add(new HashSet<Integer>());
+                                    add(new HashSet<Integer>());
+                                    add(new HashSet<Integer>());
+                                    add(new HashSet<Integer>());
+                                    add(new HashSet<Integer>());
+                                    add(new HashSet<Integer>());
+                                }
+                        });
+                    }
+
+                    HashSet<Integer> right = adjacencies.get(val).get(3);
+                    int px = x + 1;
+                    HashSet<Integer> left = adjacencies.get(val).get(2);
+                    int nx = x - 1;
+
+                    HashSet<Integer> up = adjacencies.get(val).get(0);
+                    int py = y + 1;
+                    HashSet<Integer> down = adjacencies.get(val).get(1);
+                    int ny = y - 1;
+
+                    HashSet<Integer> forward = adjacencies.get(val).get(4);
+                    int pz = z + 1;
+                    HashSet<Integer> back = adjacencies.get(val).get(5);
+                    int nz = z - 1;
+
+                    if (nx > 0) {
+                        left.add(chunkGrid[nx][y][z]);
+                    } else {
+                        left.add(-1);
+                    }
+
+                    if (px < width) {
+                        right.add(chunkGrid[px][y][z]);
+                    } else {
+                        right.add(-1);
+                    }
+
+                    if (ny > 0) {
+                        down.add(chunkGrid[x][ny][z]);
+                    } else {
+                        down.add(-1);
+                    }
+
+                    if (y < height) {
+                        up.add(chunkGrid[x][py][z]);
+                    } else {
+                        up.add(-1);
+                    }
+                    
+                    if (z > 0) {
+                        back.add(chunkGrid[x][y][nz]);
+                    } else {
+                        back.add(-1);
+                    }
+
+                    if (z < depth) {
+                        forward.add(chunkGrid[x][y][pz]);
+                    } else {
+                        forward.add(-1);
+                    }
+                }
+            }
+        }
+    } catch (Exception e){
+        System.out.println(e);
+    }
+
+    return 1;
+}
+
 
 //#endregion
 
