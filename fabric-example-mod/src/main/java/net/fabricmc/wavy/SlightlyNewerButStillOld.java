@@ -16,7 +16,7 @@ package net.fabricmc.wavy;
         } catch (IOException e) {
             //System.out.println("Did not create new file");
         }
-        //TODO figure out how to add edge adjacencies
+        // figure out how to add edge adjacencies
         HashMap<Integer, String> saveIntegerToBlockMap = new HashMap<Integer, String>();
 
         for (Integer i : integerToBlockMap.keySet()) {
@@ -46,7 +46,7 @@ package net.fabricmc.wavy;
 
         adj = (HashMap<Integer, Vector<Vector<Integer>> >) o.readObject();
         listOfSeenBlocks = (HashMap<Integer, Integer>) o.readObject();
-        //TODO figure out how to load the edge adjacencies
+        //figure out how to load the edge adjacencies
         //Convert test to integerToBlockMap and blockToIntegerMap;
         for(int i : test.keySet()){
             convertStringToBlockState(test.get(i), i);
@@ -1085,7 +1085,7 @@ package net.fabricmc.wavy;
 
             collapsedOutputIntegerCoordinates.add(minVec);
         }
-        //TODO - If a block is intersected and has one possibility, collapse it and then propogate that change
+        //If a block is intersected and has one possibility, collapse it and then propogate that change
         //Print4DArray(outputInteger);
 
         //Shrink OutputIntegers to get rid of edges
