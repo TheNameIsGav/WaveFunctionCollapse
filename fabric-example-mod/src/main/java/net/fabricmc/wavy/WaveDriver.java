@@ -272,6 +272,7 @@ public class WaveDriver {
                         idToChunks.put(chunkId, chunk);
                         chunks[i][j][k] = chunkId;
                         chunkId++;
+                        chunk._count = 1;
                     } else {
                         try {
                             chunk = idToChunks.get(flag);
@@ -301,11 +302,6 @@ public int stage1(){
     int[][][] grid = convertBlockStatesToIntegers(pos1, pos2);
     
     int[][][] chunkGrid = convertIntegersToChunks(grid);
-    // System.out.println(grid[0][1][0] + " " + grid[1][1][0]);
-    // System.out.println(grid[0][0][0] + " " + grid[1][0][0]);
-
-    // System.out.println(grid[0][1][1] + " " + grid[1][1][1]);
-    // System.out.println(grid[0][0][1] + " " + grid[1][0][1]);
 
     HashMap<Integer, List<HashSet<Integer>>> adj = stage2(chunkGrid);
     HashSet<Integer>[][][] outputGrid = stage3(chunkGrid);
@@ -516,18 +512,18 @@ public int[][][] stage4(HashSet<Integer>[][][] outputGrid, HashMap<Integer, List
                 }
             }
 
-            //Front Face
+            //Back Face
             for(int x = 0; x <= width; x++){
                 for(int y = 0; y <= height; y++){
-                    outputGrid[x][y][0].retainAll(edgeBack);
+                    outputGrid[x][y][0].retainAll(edgeForward);
                     toCollapseQueue.add(new PQueuePosition(x, y, 0, outputGrid[x][y][0].size()));
                 }
             }
 
-            //Back Face
+            //Front Face
             for(int x = 0; x <= width; x++){
                 for(int y = 0; y <= height; y++){
-                    outputGrid[x][y][depth].retainAll(edgeForward);
+                    outputGrid[x][y][depth].retainAll(edgeBack);
                     toCollapseQueue.add(new PQueuePosition(x, y, depth, outputGrid[x][y][depth].size()));
                 }
             }
@@ -542,6 +538,7 @@ public int[][][] stage4(HashSet<Integer>[][][] outputGrid, HashMap<Integer, List
                 PQueuePosition current = toCollapseQueue.poll();
                 BlockPos currentPos = current.pos;
                 HashSet<Integer> currentVal = outputGrid[current.x][current.y][current.z];
+                if(currentVal.size() == 0) throw new IndexOutOfBoundsException("Current Value was nothing");
 
                 List<Integer> weighCollection = new ArrayList<Integer>();
                 
@@ -642,6 +639,7 @@ public int[][][] stage4(HashSet<Integer>[][][] outputGrid, HashMap<Integer, List
                         } else {
                             Object[] tmp = outputGrid[x][y][z].toArray();
                             Integer tmp2 = (Integer) tmp[0];
+                            if(tmp2 == -1) throw new IllegalArgumentException("Cannnot generate -1");
                             finalOutput[x][y][z] = tmp2.intValue();
                         }                        
                     }
