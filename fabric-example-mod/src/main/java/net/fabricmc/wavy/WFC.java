@@ -7,13 +7,18 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.network.MessageType;
 import net.minecraft.server.command.CommandManager;
+import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.LiteralText;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.registry.Registry;
 
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
 public class WFC implements ModInitializer {
 	// This logger is used to write text to the console and the log file.
@@ -40,13 +45,90 @@ public class WFC implements ModInitializer {
 		CommandRegistrationCallback.EVENT.register((dispatcher, decdicated) -> {
 			dispatcher.register(CommandManager.literal("saveWFC").executes(context-> {
 				MinecraftClient mc = MinecraftClient.getInstance();
-
+				waveDriver.mc = mc;
 				//Setup the initial requirements for the Wave Driving function
 				waveDriver.World(mc.world);
-				int ret = waveDriver.stage1();
+				int ret = waveDriver.stage0();
 				mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("First WFC finished with value " + ret), mc.player.getUuid());
 				return 1;
 			}));
+		});
+
+		CommandRegistrationCallback.EVENT.register((dispatcher, dedicated) -> {
+			dispatcher.register(CommandManager.literal("chunkSize")
+			.then(CommandManager.argument("val", IntegerArgumentType.integer())
+				.executes(context -> {
+					waveDriver.chunkSize = IntegerArgumentType.getInteger(context, "val");
+					return 1;
+			})));
+		});
+
+		CommandRegistrationCallback.EVENT.register((dispatcher, dedicated) -> {
+            LiteralArgumentBuilder<ServerCommandSource> command = LiteralArgumentBuilder
+				.<ServerCommandSource>literal("setPos1")
+				.requires(source -> source.hasPermissionLevel(2))
+				.then(net.minecraft.server.command.CommandManager.argument("x", IntegerArgumentType.integer())
+						.then(net.minecraft.server.command.CommandManager.argument("y", IntegerArgumentType.integer())
+								.then(net.minecraft.server.command.CommandManager.argument("z", IntegerArgumentType.integer())
+										.executes(context -> {
+											int x = IntegerArgumentType.getInteger(context, "x");
+											int y = IntegerArgumentType.getInteger(context, "y");
+											int z = IntegerArgumentType.getInteger(context, "z");
+											waveDriver.Pos1(new BlockPos(x, y, z));
+											return 1;
+										}))));
+			dispatcher.register(command);
+		});
+
+		CommandRegistrationCallback.EVENT.register((dispatcher, dedicated) -> {
+            LiteralArgumentBuilder<ServerCommandSource> command = LiteralArgumentBuilder
+				.<ServerCommandSource>literal("setPos2")
+				.requires(source -> source.hasPermissionLevel(2))
+				.then(net.minecraft.server.command.CommandManager.argument("x", IntegerArgumentType.integer())
+						.then(net.minecraft.server.command.CommandManager.argument("y", IntegerArgumentType.integer())
+								.then(net.minecraft.server.command.CommandManager.argument("z", IntegerArgumentType.integer())
+										.executes(context -> {
+											int x = IntegerArgumentType.getInteger(context, "x");
+											int y = IntegerArgumentType.getInteger(context, "y");
+											int z = IntegerArgumentType.getInteger(context, "z");
+											waveDriver.Pos2(new BlockPos(x, y, z));
+											return 1;
+										}))));
+			dispatcher.register(command);
+		});
+
+		CommandRegistrationCallback.EVENT.register((dispatcher, dedicated) -> {
+            LiteralArgumentBuilder<ServerCommandSource> command = LiteralArgumentBuilder
+				.<ServerCommandSource>literal("setRunPos1")
+				.requires(source -> source.hasPermissionLevel(2))
+				.then(net.minecraft.server.command.CommandManager.argument("x", IntegerArgumentType.integer())
+						.then(net.minecraft.server.command.CommandManager.argument("y", IntegerArgumentType.integer())
+								.then(net.minecraft.server.command.CommandManager.argument("z", IntegerArgumentType.integer())
+										.executes(context -> {
+											int x = IntegerArgumentType.getInteger(context, "x");
+											int y = IntegerArgumentType.getInteger(context, "y");
+											int z = IntegerArgumentType.getInteger(context, "z");
+											waveDriver.Run1(new BlockPos(x, y, z));
+											return 1;
+										}))));
+			dispatcher.register(command);
+		});
+
+		CommandRegistrationCallback.EVENT.register((dispatcher, dedicated) -> {
+            LiteralArgumentBuilder<ServerCommandSource> command = LiteralArgumentBuilder
+				.<ServerCommandSource>literal("setRunPos2")
+				.requires(source -> source.hasPermissionLevel(2))
+				.then(net.minecraft.server.command.CommandManager.argument("x", IntegerArgumentType.integer())
+						.then(net.minecraft.server.command.CommandManager.argument("y", IntegerArgumentType.integer())
+								.then(net.minecraft.server.command.CommandManager.argument("z", IntegerArgumentType.integer())
+										.executes(context -> {
+											int x = IntegerArgumentType.getInteger(context, "x");
+											int y = IntegerArgumentType.getInteger(context, "y");
+											int z = IntegerArgumentType.getInteger(context, "z");
+											waveDriver.Run2(new BlockPos(x, y, z));
+											return 1;
+										}))));
+			dispatcher.register(command);
 		});
 
 		// CommandRegistrationCallback.EVENT.register((dispatcher, decdicated) -> {

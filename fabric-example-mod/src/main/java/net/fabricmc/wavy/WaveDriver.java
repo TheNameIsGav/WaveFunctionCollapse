@@ -3,12 +3,16 @@ package net.fabricmc.wavy;
 import java.util.*;
 
 import net.minecraft.block.BlockState;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.network.MessageType;
+import net.minecraft.text.LiteralText;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
 
 public class WaveDriver {
     public static WaveDriver instance;
+    public MinecraftClient mc;
 
     private World world;
     public void World(World w) {world = w; }
@@ -234,7 +238,7 @@ public class WaveDriver {
 //#endregion
 
 //#region Generate Chunks of size chunkSize, adding them to a hashset and then 
-    public static int chunkSize = 1;
+    public int chunkSize = 2;
     public int chunkId = 0;
     public HashMap<WFCChunk, Integer> chunksToID = new HashMap<WFCChunk, Integer>();
     public HashMap<Integer, WFCChunk> idToChunks = new HashMap<Integer, WFCChunk>();
@@ -293,6 +297,13 @@ public class WaveDriver {
 //#region Base Driver
 
 //Read all the information into the grid's and create chunks
+int maxRuns = 1000;
+
+public int stage0(){
+    maxRuns = 1000;
+    return stage1();
+}
+
 public int stage1(){
     maximizeCoordinatesInput();
     
@@ -307,9 +318,18 @@ public int stage1(){
     HashSet<Integer>[][][] outputGrid = stage3(chunkGrid);
     int[][][] intOutputGrid = stage4(outputGrid, adj);
 
-    if(intOutputGrid != null) stageX(intOutputGrid);
-    
-    return 1;
+    if(intOutputGrid != null) {stageX(intOutputGrid); return 1;}
+    else  {
+        System.out.println(maxRuns);
+        if(maxRuns < 0){
+            mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("Max Runs reached"), mc.player.getUuid());
+            return 2;
+        }
+        mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("Attempting to rerun WFC, got bad result"), mc.player.getUuid());
+        maxRuns--;
+        
+        return stage1();
+    }
 }
 
 //Setup all the adjacencies for the chunks
@@ -657,9 +677,10 @@ public int[][][] stage4(HashSet<Integer>[][][] outputGrid, HashMap<Integer, List
 
 //Generate the world from the chunks
 public int stageX(int[][][] outputGrid){
-    int width = outputGrid.length - chunkSize;
-    int height = outputGrid[0].length - chunkSize;
-    int depth = outputGrid[0][0].length - chunkSize;
+    
+    int width = outputGrid.length - (chunkSize - 1);
+    int height = outputGrid[0].length - (chunkSize - 1);
+    int depth = outputGrid[0][0].length - (chunkSize - 1);
 
     BlockPos startCoords = new BlockPos(105, 105, 105);
 
@@ -668,8 +689,18 @@ public int stageX(int[][][] outputGrid){
         for(int y = 0; y <= height; y++){
             for(int z = 0; z <= depth; z++){
 
-                GenerateChunk(idToChunks.get(outputGrid[x][y][z]), 
+                try {
+
+                    if(outputGrid[x][y][z] == -1){
+                        throw new IndexOutOfBoundsException("Invalid edge");
+                    }
+
+                    GenerateChunk(idToChunks.get(outputGrid[x][y][z]), 
                                 new BlockPos(startCoords.getX() + x, startCoords.getY() + y, startCoords.getZ() + z));
+                } catch (Exception e) {
+                    System.out.println(e.toString());
+                    return -1;
+                }
 
             }
         }
