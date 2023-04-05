@@ -7,8 +7,8 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.network.MessageType;
 import net.minecraft.text.LiteralText;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
-
 
 public class WaveDriver {
     public static WaveDriver instance;
@@ -26,11 +26,11 @@ public class WaveDriver {
     public void Pos2(BlockPos p){ pos2 = p; }
     public BlockPos Pos2(){ return pos2; }
 
-    private BlockPos runPos1 = new BlockPos(105, 106, 105); //Run position 1
+    private BlockPos runPos1; //Run position 1
     public void Run1(BlockPos p) { runPos1 = p; }
     public BlockPos Run1() {return runPos1; }
 
-    private BlockPos runPos2 = new BlockPos(106, 105, 105); //Run position 2
+    private BlockPos runPos2; //Run position 2
     public void Run2(BlockPos p) { runPos2 = p; }
     public BlockPos Run2() {return runPos2; }
 
@@ -296,40 +296,88 @@ public class WaveDriver {
 
 //#region Base Driver
 
-//Read all the information into the grid's and create chunks
-int maxRuns = 1000;
 
-public int stage0(){
-    maxRuns = 1000;
-    return stage1();
+public class TrialData{
+
+    public int runResults;
+    public Date startTime;
+    public Date endTime;
+
+    public TrialData(){
+        startTime = new Date();
+    }
+
+    public long Elapsed(){
+        return endTime.getTime() - startTime.getTime();
+    }
 }
 
+//Read all the information into the grid's and create chunks
+int maxRuns = 500;
+public boolean testing = false;
+public int stage0(){
+    maxRuns = 100;
+    doOnce = true;
+    globalCallsToGenerateChunk = 0;
+    ArrayList<TrialData> results = new ArrayList<TrialData>();
+
+    if(testing){
+        for(int i = 0; i < 100; i++){ //Conduct 100 Trial
+            maxRuns = 100;
+            //For each trial, store how long it took, and what the result was. 
+            TrialData td = new TrialData();
+            int result = stage1();
+            td.runResults = result;
+            td.endTime = new Date();
+            results.add(td);
+        }
+        
+        long sumElapsed = 0;
+        int successes = 0;
+        int failures = 0;
+        for(TrialData td : results){
+            sumElapsed += td.Elapsed();
+            if(td.runResults == 1) successes += 1; else failures += 1;
+        }
+
+        System.out.println("Avg Time: " + sumElapsed / results.size());
+        System.out.println("Successes: " + successes);
+        System.out.println("Failures: " + failures);
+
+        return -1;
+    } else {
+        return stage1();
+    }
+}
+
+boolean doOnce = true;
 public int stage1(){
     maximizeCoordinatesInput();
     
     resetBasicDataStructures();
     indexBlockStates(pos1, pos2);
 
-    int[][][] grid = convertBlockStatesToIntegers(pos1, pos2);
+    int[][][] grid = convertBlockStatesToIntegers(pos1, pos2); //Input related
     
-    int[][][] chunkGrid = convertIntegersToChunks(grid);
+    int[][][] chunkGrid = convertIntegersToChunks(grid); //Should be one smaller than grid for chunk size of 2
+
+    //if(doOnce) DebugGenerateChunks(); doOnce = false;
 
     HashMap<Integer, List<HashSet<Integer>>> adj = stage2(chunkGrid);
     HashSet<Integer>[][][] outputGrid = stage3(chunkGrid);
+    
     int[][][] intOutputGrid = stage4(outputGrid, adj);
-
     if(intOutputGrid != null) {stageX(intOutputGrid); return 1;}
     else  {
-        System.out.println(maxRuns);
         if(maxRuns < 0){
             mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("Max Runs reached"), mc.player.getUuid());
             return 2;
         }
-        mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("Attempting to rerun WFC, got bad result"), mc.player.getUuid());
+        mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("Attempting to rerun WFC, got bad result " + maxRuns), mc.player.getUuid());
         maxRuns--;
         
         return stage1();
-    }
+    }   
 }
 
 //Setup all the adjacencies for the chunks
@@ -460,16 +508,16 @@ public HashSet<Integer>[][][] stage3(int[][][] chunkGrid){
         BlockPos startPos = runPos1;
         BlockPos endPos = runPos2;
 
-        int width = endPos.getX() - startPos.getX() + 1 - chunkSize;
-        int height = endPos.getY() - startPos.getY() + 1 - chunkSize;
-        int depth = endPos.getZ() - startPos.getZ() + 1 - chunkSize;
+        int width = endPos.getX() - startPos.getX() + 1 - (chunkSize - 1);
+        int height = endPos.getY() - startPos.getY() + 1 - (chunkSize - 1);
+        int depth = endPos.getZ() - startPos.getZ() + 1 - (chunkSize - 1);
 
-        HashSet<Integer>[][][] outputGrid = new HashSet[width+1][height+1][depth+1];
+        HashSet<Integer>[][][] outputGrid = new HashSet[width][height][depth];
 
-        for (int x = 0; x <= width; x++) {
-            for (int y = 0; y <= height; y++) {
-                for (int z = 0; z <= depth; z++) {
-                    HashSet<Integer> possibilities = new HashSet<Integer>(blockStateToID.values());
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                for (int z = 0; z < depth; z++) {
+                    HashSet<Integer> possibilities = new HashSet<Integer>(idToChunks.keySet()); //Burh this was blocks not chunks
                     outputGrid[x][y][z] = new HashSet<Integer>(possibilities);
                 }
             }
@@ -553,19 +601,18 @@ public int[][][] stage4(HashSet<Integer>[][][] outputGrid, HashMap<Integer, List
         //region Begin Collapse
             while(!toCollapseQueue.isEmpty()){
 
-                System.out.println(collapsedSet.size() + " " + toCollapseQueue.size());
-
                 PQueuePosition current = toCollapseQueue.poll();
                 BlockPos currentPos = current.pos;
                 HashSet<Integer> currentVal = outputGrid[current.x][current.y][current.z];
-                if(currentVal.size() == 0) throw new IndexOutOfBoundsException("Current Value was nothing");
+                if(currentVal.size() == 0) 
+                    throw new IndexOutOfBoundsException("Current Value was nothing");
 
                 List<Integer> weighCollection = new ArrayList<Integer>();
                 
                 for(int id : currentVal){
-                    for(int r = 0; r < idToChunks.get(id)._count; r++){
+                    //for(int r = 0; r < idToChunks.get(id)._count; r++){
                         weighCollection.add(id);
-                    }
+                    //}
                 }
 
                 Random rand = new Random();
@@ -677,12 +724,13 @@ public int[][][] stage4(HashSet<Integer>[][][] outputGrid, HashMap<Integer, List
 
 //Generate the world from the chunks
 public int stageX(int[][][] outputGrid){
-    
+    mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("Beginning generation"), mc.player.getUuid());
     int width = outputGrid.length - (chunkSize - 1);
     int height = outputGrid[0].length - (chunkSize - 1);
     int depth = outputGrid[0][0].length - (chunkSize - 1);
 
     BlockPos startCoords = new BlockPos(105, 105, 105);
+    int count = 0;
 
     //Goes from Minimal Coordinates to Maxmial Coordaintes
     for(int x = 0; x <= width; x++){
@@ -694,9 +742,11 @@ public int stageX(int[][][] outputGrid){
                     if(outputGrid[x][y][z] == -1){
                         throw new IndexOutOfBoundsException("Invalid edge");
                     }
-
+                    //Thread.sleep(50);
+                    //mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("tick " + count), mc.player.getUuid());
                     GenerateChunk(idToChunks.get(outputGrid[x][y][z]), 
                                 new BlockPos(startCoords.getX() + x, startCoords.getY() + y, startCoords.getZ() + z));
+                    count++;  
                 } catch (Exception e) {
                     System.out.println(e.toString());
                     return -1;
@@ -705,6 +755,7 @@ public int stageX(int[][][] outputGrid){
             }
         }
     }
+    System.out.println(globalCallsToGenerateChunk);
     return 1;
 }
 
@@ -789,13 +840,16 @@ public static void print3DIntArray(int[][][] arr) {
     }
 }
 
+int globalCallsToGenerateChunk = 0;
+
 public void GenerateChunk(WFCChunk chunk, BlockPos startCoor){
-    
+    globalCallsToGenerateChunk += 1;
     for(int x = 0; x < chunkSize; x++){
         for(int y = 0; y < chunkSize; y++){
             for(int z = 0; z < chunkSize; z++){
                 BlockPos coor = new BlockPos(startCoor.getX()  + x, startCoor.getY() + y, startCoor.getZ() + z);
-                world.setBlockState(coor, idToBlockState.get(chunk._chunkBlockValues[x][y][z]));
+                int id = chunk._chunkBlockValues[x][y][z];
+                world.setBlockState(coor, idToBlockState.get(id));
             }
         }
     }
@@ -814,6 +868,16 @@ public PriorityQueue<PQueuePosition> filterQueue(PriorityQueue<PQueuePosition> p
     }
 
     return newQ;
+}
+
+public void DebugGenerateChunks(){
+    int i = 0;
+    Vec3d currPos = mc.player.getPos();
+    for(WFCChunk c : idToChunks.values()){
+        BlockPos pos = new BlockPos(currPos.x + (i * 5), currPos.y, currPos.z);
+        i++;
+        GenerateChunk(c, pos);
+    }
 }
 //#endregion
 

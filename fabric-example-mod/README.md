@@ -1,4 +1,4 @@
-# Fabric Example Mod
+# Wave Function Collapse Algorithm Within Minecraft
 
 ## Setup
 

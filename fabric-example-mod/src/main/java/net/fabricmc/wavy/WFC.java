@@ -17,6 +17,7 @@ import net.minecraft.util.registry.Registry;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
@@ -64,6 +65,15 @@ public class WFC implements ModInitializer {
 		});
 
 		CommandRegistrationCallback.EVENT.register((dispatcher, dedicated) -> {
+			dispatcher.register(CommandManager.literal("shouldTest")
+			.then(CommandManager.argument("val", BoolArgumentType.bool())
+				.executes(context -> {
+					waveDriver.testing = BoolArgumentType.getBool(context, "val");
+					return 1;
+			})));
+		});
+
+		CommandRegistrationCallback.EVENT.register((dispatcher, dedicated) -> {
             LiteralArgumentBuilder<ServerCommandSource> command = LiteralArgumentBuilder
 				.<ServerCommandSource>literal("setPos1")
 				.requires(source -> source.hasPermissionLevel(2))
@@ -75,6 +85,8 @@ public class WFC implements ModInitializer {
 											int y = IntegerArgumentType.getInteger(context, "y");
 											int z = IntegerArgumentType.getInteger(context, "z");
 											waveDriver.Pos1(new BlockPos(x, y, z));
+											MinecraftClient mc = MinecraftClient.getInstance();
+											mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText(String.format("Pos1 set to ", x, y, z)), mc.player.getUuid());
 											return 1;
 										}))));
 			dispatcher.register(command);
@@ -92,6 +104,8 @@ public class WFC implements ModInitializer {
 											int y = IntegerArgumentType.getInteger(context, "y");
 											int z = IntegerArgumentType.getInteger(context, "z");
 											waveDriver.Pos2(new BlockPos(x, y, z));
+											MinecraftClient mc = MinecraftClient.getInstance();
+											mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText(String.format("Pos2 set to ", x, y, z)), mc.player.getUuid());
 											return 1;
 										}))));
 			dispatcher.register(command);
@@ -109,6 +123,8 @@ public class WFC implements ModInitializer {
 											int y = IntegerArgumentType.getInteger(context, "y");
 											int z = IntegerArgumentType.getInteger(context, "z");
 											waveDriver.Run1(new BlockPos(x, y, z));
+											MinecraftClient mc = MinecraftClient.getInstance();
+											mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText(String.format("RunPos1 set to ", x, y, z)), mc.player.getUuid());
 											return 1;
 										}))));
 			dispatcher.register(command);
@@ -126,6 +142,8 @@ public class WFC implements ModInitializer {
 											int y = IntegerArgumentType.getInteger(context, "y");
 											int z = IntegerArgumentType.getInteger(context, "z");
 											waveDriver.Run2(new BlockPos(x, y, z));
+											MinecraftClient mc = MinecraftClient.getInstance();
+											mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText(String.format("RunPos2 set to ", x, y, z)), mc.player.getUuid());
 											return 1;
 										}))));
 			dispatcher.register(command);
