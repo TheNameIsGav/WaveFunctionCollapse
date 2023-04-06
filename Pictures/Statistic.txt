@@ -1,48 +1,159 @@
-ChunkSize = 2
-Simple Stone
+All Tests
+
+Terrain Tests
+Flat Stone - Fixed Size - CS 2
+Flat Stone - Fixed Size - CS 3
+Flat Stone - Expanded Size - CS 2
+Flat Stone - Expanded Size - CS 3
+
+Varied Stone - Fixed Size - CS 2
 Avg Time: 128
 Successes: 2/100
 
-Medium Stone - Fixed Size
-Experienced no successes in 100000 runs
+Varied Stone - Fixed Size - CS 3
+Varied Stone - Expanded Size - CS 2
+Varied Stone - Expanded Size - CS 3
 
-Simple Grass
+Complex Stone - Fixed Size - CS 2
+Experienced no successes in 100000 runs - try redo
+
+Complex Stone - Fixed Size - CS 3
+Complex Stone - Expanded Size - CS 2
+Complex Stone - Expanded Size - CS 3
+
+Simple Grass - Fixed Size - CS 2
 Avg Time: 0 MS
 Successes: 100/100
 
-Simple Grass Variation - Fixed Size
+Simple Grass - Fixed Size - CS 3
+Simple Grass - Expanded Size - CS 2
+Simple Grass - Expanded Size - CS 3
+
+Varied Grass - Fixed Size - CS 2
 Avg Time: 0 MS
 Successes: 100/100
 
-Simple Grass Variation - Expanded Size
+Varied Grass - Fixed Size - CS 3
+
+Varied Grass - Expanded Size - CS 2
 Avg Time: 191
 Successes 14/1000
 
-Simple Grass Big Variation - Expanded Size
-No runs in 100000 runs
+Varied Grass - Expanded Size - CS 3
 
-Simple Grass Big Variation - Fixed Size
-Avg Time: 77
-Successes: 210 / 1000
+Complex Grass - Fixed Size - CS 2
+Complex Grass - Expanded Size - CS 2
+Complex Grass - Fixed Size - CS 3
+Complex Grass - Expanded Size - CS 3
 
-Wooden Pillars Few - Fixed Size
+Structure Tests
+Stone Hovel - Fixed Size - CS 2
+Stone Hovel - Fixed Size - CS 3
+Stone Hovel - Expanded Size - CS 2
+Stone Hovel - Expanded Size - CS 3
+
+Stone House - Fixed Size - CS 2
+Stone House - Fixed Size - CS 3
+Stone House - Expanded Size - CS 2
+Stone House - Expanded Size - CS 3
+
+Wooden Hovel - Fixed Size - CS 2
+Wooden Hovel - Expanded Size - CS 3
+Wooden House - Fixed Size - CS 2
+Wooden House - Expanded Size - CS 3
+
+Hybrid Tests
+Stone Hovel on Varied Grass - Fixed Size - CS 2
+Stone Hovel Generation - Fixed Size (Crashes without thread sleep inclusion) (At a chunk size of 2 does not generate)
+The house does generate, but it's rare
+Avg Time: 1498
+Successes: 100
+Failures: 0
+
+Stone Hovel on Varied Grass - Fixed Size - CS 3
+Stone Hovel on Varied Grass - Expanded Size - CS 2
+Stone Hovel on Varied Grass - Expanded Size - CS 3
+
+Stone House on Varied Grass - Fixed Size - CS 2
+Stone House on Varied Grass - Fixed Size - CS 3
+Stone House on Varied Grass - Expanded Size - CS 2
+Stone House on Varied Grass - Expanded Size - CS 3
+
+Stone Hovel on Complex Grass - Fixed Size - CS 2
+Stone Hovel on Complex Grass - Fixed Size - CS 3
+Stone Hovel on Complex Grass - Expanded Size - CS 2
+Stone Hovel on Complex Grass - Expanded Size - CS 3
+
+Stone House on Complex Grass - Fixed Size - CS 2
+Stone House on Complex Grass - Fixed Size - CS 3
+Stone House on Complex Grass - Expanded Size - CS 2
+Stone House on Complex Grass - Expanded Size - CS 3
+
+Wooden Hovel on Varied Grass - Fixed Size - CS 2
+Wooden Hovel on Varied Grass - Fixed Size - CS 3
+Wooden Hovel on Varied Grass - Expanded Size - CS 2
+Wooden Hovel on Varied Grass - Expanded Size - CS 3
+
+Wooden House on Varied Grass - Fixed Size - CS 2
+Wooden House on Varied Grass - Fixed Size - CS 3
+Wooden House on Varied Grass - Expanded Size - CS 2
+Wooden House on Varied Grass - Expanded Size - CS 3
+
+Wooden Hovel on Complex Grass - Fixed Size - CS 2
+Wooden Hovel on Complex Grass - Fixed Size - CS 3
+Wooden Hovel on Complex Grass - Expanded Size - CS 2
+Wooden Hovel on Complex Grass - Expanded Size - CS 3
+
+Wooden House on Complex Grass - Fixed Size - CS 2
+Wooden House on Complex Grass - Fixed Size - CS 3
+Wooden House on Complex Grass - Expanded Size - CS 2
+Wooden House on Complex Grass - Expanded Size - CS 3
+
+
+Extra Tests
+Stone Pipes - Fixed Size - CS 2
+Stone Pipes - Expanded Size - CS 2
+Stone Pipes - Fixed Size - CS 3
+Stone Pipes - Expanded Size - CS 3
+
+Simple Striations - Fixed Size - CS 2
+Avg Time: 2
+Successes: 100
+Failures: 0
+
+Simple Striations - Fixed Size - CS 3
+Simple Striations - Expanded Size - CS 2
+Avg Time: 311
+Successes: 75
+Failures: 25
+
+Simple Striations - Expanded Size - CS 3
+
+Wooden Pillars Few - Fixed Size - CS 2
 Avg Time: 77
 Successes: 210
 Failures: 790
 Crashed
 
-Wooden Pillars Few - Expanded Size
-Generation Errors Interestingly enough
+Wooden Pillars Few - Fixed Size - CS 3
+Wooden Pillars Few - Expanded Size - CS 2
 Avg Time: 2385
 Successes: 71
 Failures: 929
 
-Simple Wooden Cube - Fixed Size
-Avg Time: 4851
-Successes: 0
-Failures: 10000
+Wooden Pillars Few - Expanded Size - CS 3
+
+Wooden Pillars Many - Fixed Size - CS 2
+Wooden Pillars Many - Fixed Size - CS 3
+Wooden Pillars Many - Expanded Size - CS 2
+Wooden Pillars Many - Expanded Size - CS 3
+
+
+
+Other Tests
 
 HUGE Slowdowns while running. 
+Generation causes Chunks to stop rendering
 
 Wooden U No Stone Fixed Size
 Avg Time: 41
@@ -63,28 +174,3 @@ Wooden U no Stone Expanded Size
 Avg Time: 1495
 Successes: 0
 Failures: 100
-
-Striations Fixed Size
-Avg Time: 2
-Successes: 100
-Failures: 0
-
-Striations Expanded Size
-Avg Time: 311
-Successes: 75
-Failures: 25
-
-Simple Grass Terrain - Fixed Size
-Avg Time: 311
-Successes: 75
-Failures: 25
-
-
-ChunkSize = 3
-Stone Hovel Generation - Fixed Size (Crashes without thread sleep inclusion) (At a chunk size of 2 does not generate)
-The house does generate, but it's rare
-Avg Time: 1498
-Successes: 100
-Failures: 0
-
-
