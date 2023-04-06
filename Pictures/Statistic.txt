@@ -81,3 +81,10 @@ Failures: 25
 
 
 ChunkSize = 3
+Stone Hovel Generation - Fixed Size (Crashes without thread sleep inclusion) (At a chunk size of 2 does not generate)
+The house does generate, but it's rare
+Avg Time: 1498
+Successes: 100
+Failures: 0
+
+

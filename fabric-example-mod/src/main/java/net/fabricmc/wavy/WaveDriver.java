@@ -752,7 +752,6 @@ public int stageX(int[][][] outputGrid){
                     //System.out.println(e.toString());
                     return -1;
                 }
-
             }
         }
     }
