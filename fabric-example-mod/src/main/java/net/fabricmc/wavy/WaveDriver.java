@@ -283,7 +283,7 @@ public class WaveDriver {
                             chunk._count++;
                             chunks[i][j][k] = chunk._id;
                         } catch(Exception e){
-                            System.out.println(e);
+                            //System.out.println(e);
                         }
                     }
                 }
@@ -314,7 +314,7 @@ public class TrialData{
 
 //Read all the information into the grid's and create chunks
 int maxRuns = 500;
-public boolean testing = false;
+public boolean testing = true;
 public int stage0(){
     maxRuns = 100;
     doOnce = true;
@@ -323,6 +323,7 @@ public int stage0(){
 
     if(testing){
         for(int i = 0; i < 100; i++){ //Conduct 100 Trial
+            mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("Run: " + i), mc.player.getUuid());
             maxRuns = 100;
             //For each trial, store how long it took, and what the result was. 
             TrialData td = new TrialData();
@@ -370,10 +371,10 @@ public int stage1(){
     if(intOutputGrid != null) {stageX(intOutputGrid); return 1;}
     else  {
         if(maxRuns < 0){
-            mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("Max Runs reached"), mc.player.getUuid());
+            //mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("Max Runs reached"), mc.player.getUuid());
             return 2;
         }
-        mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("Attempting to rerun WFC, got bad result " + maxRuns), mc.player.getUuid());
+        //mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("Attempting to rerun WFC, got bad result " + maxRuns), mc.player.getUuid());
         maxRuns--;
         
         return stage1();
@@ -494,7 +495,7 @@ public HashMap<Integer, List<HashSet<Integer>>> stage2(int[][][] chunkGrid){
 
 
     } catch (Exception e){
-        System.out.println(e);
+        //System.out.println(e);
     }
 
     return adjacencies;
@@ -525,7 +526,7 @@ public HashSet<Integer>[][][] stage3(int[][][] chunkGrid){
 
         return outputGrid;
     } catch (Exception e){
-        System.out.println(e.toString());
+        //System.out.println(e.toString());
         return null;
     }
 }
@@ -610,9 +611,9 @@ public int[][][] stage4(HashSet<Integer>[][][] outputGrid, HashMap<Integer, List
                 List<Integer> weighCollection = new ArrayList<Integer>();
                 
                 for(int id : currentVal){
-                    //for(int r = 0; r < idToChunks.get(id)._count; r++){
+                    for(int r = 0; r < idToChunks.get(id)._count; r++){
                         weighCollection.add(id);
-                    //}
+                    }
                 }
 
                 Random rand = new Random();
@@ -716,7 +717,7 @@ public int[][][] stage4(HashSet<Integer>[][][] outputGrid, HashMap<Integer, List
 
         return finalOutput;
     } catch (Exception e){
-        System.out.println(e.toString());
+        //System.out.println(e.toString());
         return null;
     }
     
@@ -748,14 +749,13 @@ public int stageX(int[][][] outputGrid){
                                 new BlockPos(startCoords.getX() + x, startCoords.getY() + y, startCoords.getZ() + z));
                     count++;  
                 } catch (Exception e) {
-                    System.out.println(e.toString());
+                    //System.out.println(e.toString());
                     return -1;
                 }
 
             }
         }
     }
-    System.out.println(globalCallsToGenerateChunk);
     return 1;
 }
 

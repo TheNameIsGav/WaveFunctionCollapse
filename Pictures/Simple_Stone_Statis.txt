@@ -1,0 +1,83 @@
+ChunkSize = 2
+Simple Stone
+Avg Time: 128
+Successes: 2/100
+
+Medium Stone - Fixed Size
+Experienced no successes in 100000 runs
+
+Simple Grass
+Avg Time: 0 MS
+Successes: 100/100
+
+Simple Grass Variation - Fixed Size
+Avg Time: 0 MS
+Successes: 100/100
+
+Simple Grass Variation - Expanded Size
+Avg Time: 191
+Successes 14/1000
+
+Simple Grass Big Variation - Expanded Size
+No runs in 100000 runs
+
+Simple Grass Big Variation - Fixed Size
+Avg Time: 77
+Successes: 210 / 1000
+
+Wooden Pillars Few - Fixed Size
+Avg Time: 77
+Successes: 210
+Failures: 790
+Crashed
+
+Wooden Pillars Few - Expanded Size
+Generation Errors Interestingly enough
+Avg Time: 2385
+Successes: 71
+Failures: 929
+
+Simple Wooden Cube - Fixed Size
+Avg Time: 4851
+Successes: 0
+Failures: 10000
+
+HUGE Slowdowns while running. 
+
+Wooden U No Stone Fixed Size
+Avg Time: 41
+Successes: 100
+Failures: 0
+
+Wooden U Stone Fixed Size - Causes Render Thread Crash?
+Avg Time: 179
+Successes: 7
+Failures: 93
+
+Wooden U stone Expanded Size
+Avg Time: 930
+Successes: 0
+Failures: 100
+
+Wooden U no Stone Expanded Size
+Avg Time: 1495
+Successes: 0
+Failures: 100
+
+Striations Fixed Size
+Avg Time: 2
+Successes: 100
+Failures: 0
+
+Striations Expanded Size
+Avg Time: 311
+Successes: 75
+Failures: 25
+
+Simple Grass Terrain - Fixed Size
+Avg Time: 311
+Successes: 75
+Failures: 25
+
+
+ChunkSize = 3
