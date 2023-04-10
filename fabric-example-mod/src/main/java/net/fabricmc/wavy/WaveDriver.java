@@ -238,7 +238,7 @@ public class WaveDriver {
 //#endregion
 
 //#region Generate Chunks of size chunkSize, adding them to a hashset and then 
-    public int chunkSize = 2;
+    public int chunkSize = 3;
     public int chunkId = 0;
     public HashMap<WFCChunk, Integer> chunksToID = new HashMap<WFCChunk, Integer>();
     public HashMap<Integer, WFCChunk> idToChunks = new HashMap<Integer, WFCChunk>();
@@ -362,8 +362,12 @@ public int stage1(){
     
     int[][][] chunkGrid = convertIntegersToChunks(grid); //Should be one smaller than grid for chunk size of 2
 
-    //if(doOnce) DebugGenerateChunks(); doOnce = false;
-
+    if(doOnce) DebugGenerateChunks(); doOnce = false;
+    try{ 
+        Thread.sleep(100000);
+    } catch (Exception e){
+        
+    }
     HashMap<Integer, List<HashSet<Integer>>> adj = stage2(chunkGrid);
     HashSet<Integer>[][][] outputGrid = stage3(chunkGrid);
     
@@ -726,9 +730,9 @@ public int[][][] stage4(HashSet<Integer>[][][] outputGrid, HashMap<Integer, List
 //Generate the world from the chunks
 public int stageX(int[][][] outputGrid){
     mc.inGameHud.addChatMessage(MessageType.SYSTEM, new LiteralText("Beginning generation"), mc.player.getUuid());
-    int width = outputGrid.length - (chunkSize - 1);
-    int height = outputGrid[0].length - (chunkSize - 1);
-    int depth = outputGrid[0][0].length - (chunkSize - 1);
+    int width = outputGrid.length - (chunkSize - 1) + 1;
+    int height = outputGrid[0].length - (chunkSize - 1) + 1;
+    int depth = outputGrid[0][0].length - (chunkSize - 1) + 1;
 
     BlockPos startCoords = new BlockPos(105, 105, 105);
     int count = 0;
